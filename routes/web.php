@@ -10,15 +10,21 @@ Auth::routes();
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
 
-    Route::middleware(['admin'])->group(function () {
-        Route::get('/admin', fn() => view('admin.dashboard'));
+    // Admin
+    Route::middleware(['admin'])->prefix('admin')->group(function () {
+        Route::get('/', fn() => view('admin.dashboard'))->name('admin.dashboard');
+        Route::get('/profile', fn() => view('admin.profile'))->name('admin.profile');
     });
 
-    Route::middleware(['teacher'])->group(function () {
-        Route::get('/teacher', fn() => view('teacher.dashboard'));
+    // Teacher
+    Route::middleware(['teacher'])->prefix('teacher')->group(function () {
+        Route::get('/', fn() => view('teacher.dashboard'))->name('teacher.dashboard');
+        Route::get('/profile', fn() => view('teacher.profile'))->name('teacher.profile');
     });
 
-    Route::middleware(['student'])->group(function () {
-        Route::get('/student', fn() => view('student.dashboard'));
+    // Student
+    Route::middleware(['student'])->prefix('student')->group(function () {
+        Route::get('/', fn() => view('student.dashboard'))->name('student.dashboard');
+        Route::get('/profile', fn() => view('student.profile'))->name('student.profile');
     });
 });
