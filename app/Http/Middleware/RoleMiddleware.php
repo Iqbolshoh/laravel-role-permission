@@ -8,11 +8,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $role)
+    public function handle(Request $request, Closure $next, $role): Response
     {
-        if (!$request->user() || !$request->user()->hasRole($role)) {
-            return redirect('/')->with('error', 'Sizda bu sahifaga kirish uchun ruxsat yo‘q.');
+        if (!auth()->check() || auth()->user()->role !== $role) {
+            abort(403, 'You do not have access to this page.');
         }
+
         return $next($request);
     }
 }
