@@ -14,6 +14,6 @@ class HomeController extends Controller
      */
     public function index()
     {
-        return response()->redirectTo('/' . (auth()->user()->role ?? 'login'));
+        return response()->redirectTo('/dashboard');
     }
 }
