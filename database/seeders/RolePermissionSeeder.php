@@ -3,17 +3,19 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Hash;
 
 class RolePermissionSeeder extends Seeder
 {
     public function run()
     {
         // Rollarni yaratish
-        $admin = Role::create(['name' => 'admin']);
-        $teacher = Role::create(['name' => 'teacher']);
-        $student = Role::create(['name' => 'student']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $teacher = Role::firstOrCreate(['name' => 'teacher']);
+        $student = Role::firstOrCreate(['name' => 'student']);
 
         // Ruxsatnomalarni yaratish
         $permissions = [
@@ -24,17 +26,16 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Adminga barcha ruxsatlarni berish
         $admin->givePermissionTo(Permission::all());
 
-        // Teacher uchun faqat dars yaratish va ko‘rish
+        // Teacher faqat post yaratishi va kurslarni ko‘rishi mumkin
         $teacher->givePermissionTo(['create posts', 'view courses']);
 
-        // Student faqat darslarni ko‘rishi mumkin
+        // Student faqat kurslarni ko‘rishi mumkin
         $student->givePermissionTo(['view courses']);
     }
 }
-

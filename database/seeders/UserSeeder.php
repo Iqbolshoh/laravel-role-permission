@@ -11,28 +11,37 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
-        // Admin foydalanuvchisi
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@iqbolshoh.uz',
-            'password' => Hash::make('password')
-        ]);
-        $admin->assignRole('admin');
+        // Foydalanuvchilarni yaratish va rollarni tayinlash
+        $users = [
+            [
+                'name' => 'Admin User',
+                'email' => 'admin@iqbolshoh.uz',
+                'password' => Hash::make('IQBOLSHOH'),
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'Teacher User',
+                'email' => 'teacher@iqbolshoh.uz',
+                'password' => Hash::make('IQBOLSHOH'),
+                'role' => 'teacher',
+            ],
+            [
+                'name' => 'Student User',
+                'email' => 'student@iqbolshoh.uz',
+                'password' => Hash::make('IQBOLSHOH'),
+                'role' => 'student',
+            ],
+        ];
 
-        // Teacher foydalanuvchisi
-        $teacher = User::create([
-            'name' => 'Teacher User',
-            'email' => 'teacher@iqbolshoh.uz',
-            'password' => Hash::make('password')
-        ]);
-        $teacher->assignRole('teacher');
+        foreach ($users as $userData) {
+            $user = User::firstOrCreate(
+                ['email' => $userData['email']],
+                ['name' => $userData['name'], 'password' => $userData['password']]
+            );
 
-        // Student foydalanuvchisi
-        $student = User::create([
-            'name' => 'Student User',
-            'email' => 'student@iqbolshoh.uz',
-            'password' => Hash::make('password')
-        ]);
-        $student->assignRole('student');
+            if (!$user->hasRole($userData['role'])) {
+                $user->assignRole($userData['role']);
+            }
+        }
     }
 }
