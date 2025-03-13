@@ -6,7 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\StudentController;
 Route::get('/', function () {
-    return view('welcome');
+    
 });
 
 Route::get('/dashboard', function () {
@@ -18,7 +18,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
 
 // Admin uchun marshrutlar (prefix bilan)
 Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
