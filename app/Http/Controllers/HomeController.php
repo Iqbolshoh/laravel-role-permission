@@ -6,9 +6,13 @@ use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    // Bosh sahifani ko'rsatish uchun method
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
     public function index()
     {
-        return view('welcome'); // resources/views/welcome.blade.php
+        return response()->redirectTo('/' . (auth()->user()->role ?? 'login'));
     }
 }

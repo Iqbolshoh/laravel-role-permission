@@ -1,13 +1,13 @@
 <?php
 
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\StudentController;
-Route::get('/', function () {
-    
-});
+
+Route::get('/', [HomeController::class, 'index']);
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -35,4 +35,4 @@ Route::prefix('student')->middleware(['auth', 'role:student'])->group(function (
 });
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
