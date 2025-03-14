@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
@@ -34,7 +35,27 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        $role = $request->user()->getRoleNames()->first() ?? 'dashboard';
+
+        return Redirect::route("$role.profile.edit")->with('status', 'profile-updated');
+    }
+
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'min:8', 'confirmed'],
+        ]);
+
+        // Foydalanuvchi parolini yangilash
+        $request->user()->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        $role = $request->user()->getRoleNames()->first() ?? 'dashboard';
+
+        return Redirect::route("$role.profile.edit")->with('status', 'password-updated');
     }
 
     /**

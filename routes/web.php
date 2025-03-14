@@ -7,29 +7,32 @@ Route::get('/', fn() => view('welcome'));
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Admin
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/', fn() => view('welcome'))->name('home');
         Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::patch('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
     // Teacher
-    Route::prefix('teacher')->group(function () {
+    Route::prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/', fn() => view('welcome'))->name('home');
         Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::patch('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
     // Student
-    Route::prefix('student')->group(function () {
+    Route::prefix('student')->name('student.')->group(function () {
         Route::get('/', fn() => view('welcome'))->name('home');
         Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::patch('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 });
