@@ -34,7 +34,7 @@ class RolePermissionSeeder extends Seeder
             }
         }
 
-        $admin = User::where('username', 'superadmin')->first();
+        $admin = User::where('email', 'admin@iqbolshoh.uz')->first();
         if ($admin && !$admin->hasRole('superadmin')) {
             $admin->assignRole('superadmin');
         }
@@ -42,4 +42,3 @@ class RolePermissionSeeder extends Seeder
         $this->command->info('Roles and Permissions created successfully!');
     }
 }
-
