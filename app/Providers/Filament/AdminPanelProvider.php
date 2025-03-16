@@ -7,7 +7,6 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
-use App\Filament\Pages\PageName;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
