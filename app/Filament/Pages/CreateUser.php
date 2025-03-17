@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Illuminate\Support\Facades\Auth;
 
 class CreateUser extends Page
 {
@@ -15,6 +14,6 @@ class CreateUser extends Page
 
     public static function canAccess(): bool
     {
-        return Auth::user()?->can('role.create');
+        return  auth()->user()?->can('user.create');
     }
 }

@@ -9,4 +9,9 @@ class Dashboard extends Page
     protected static ?string $navigationIcon = 'heroicon-o-home';
     protected static string $view = 'filament.pages.dashboard';
     protected static ?string $slug = '/';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('dashboard.view');
+    }
 }

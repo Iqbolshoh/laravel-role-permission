@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
@@ -20,7 +19,7 @@ class CreateRole extends Page
 
     public static function canAccess(): bool
     {
-        return Auth::user()?->can('role.create');
+        return auth()->user()?->can('role.create');
     }
 
     public function mount()
