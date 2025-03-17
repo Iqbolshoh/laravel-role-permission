@@ -5,7 +5,6 @@ use App\Filament\Pages\CreateRole;
 use Spatie\Permission\Models\Role;
 use App\Filament\Pages;
 
-
 Route::middleware('auth')->group(function () {
     Route::post('/create-role', [CreateRole::class, 'save'])->name('filament.pages.create-role');
 

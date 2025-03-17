@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Livewire\Component;
 use Filament\Notifications\Notification;
 
 class ManageRoles extends Page
@@ -18,60 +17,75 @@ class ManageRoles extends Page
     public array $roles = [];
     public array $permissions = [];
     public array $selectedPermissions = [];
-    public $roleId, $roleName;
+    public array $groupedPermissions = [];
+    public ?int $roleId = null;
+    public string $roleName = '';
     public bool $isEditing = false;
+
+    public static function canAccess(): bool
+    {
+        return auth()->check() && auth()->user()->can('role.view');
+    }
 
     public function mount()
     {
         $this->loadRoles();
-        $this->permissions = Permission::all()->pluck('name')->toArray();
+        $this->permissions = Permission::pluck('name')->toArray();
+        $this->groupPermissions();
     }
 
-    public function loadRoles()
+    private function loadRoles()
     {
-        $this->roles = Role::with('permissions')->get()->map(function ($role) {
-            return [
-                'id' => $role->id,
-                'name' => $role->name,
-                'permissions' => $role->permissions->pluck('name')->toArray()
-            ];
-        })->toArray();
+        $this->roles = Role::with('permissions')->get()->map(fn($role) => [
+            'id' => $role->id,
+            'name' => $role->name,
+            'permissions' => $role->permissions->pluck('name')->toArray(),
+        ])->toArray();
     }
 
-    public function editRole($roleId)
+    private function groupPermissions()
+    {
+        $this->groupedPermissions = Permission::all()->groupBy(fn($permission) => explode('.', $permission->name)[0] ?? 'Other')->toArray();
+    }
+
+    public function editRole(int $roleId)
     {
         $role = Role::find($roleId);
-        if ($role) {
-            $this->roleId = $role->id;
-            $this->roleName = $role->name;
-            $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
-            $this->isEditing = true;
+        if (!$role) {
+            return $this->sendNotification('Error', 'Role not found!', 'danger');
         }
+
+        $this->roleId = $role->id;
+        $this->roleName = $role->name;
+        $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
+        $this->isEditing = true;
     }
 
     public function updateRole()
     {
-        if ($this->roleId) {
-            $role = Role::find($this->roleId);
-            if ($role) {
-                $role->name = $this->roleName;
-                $role->syncPermissions($this->selectedPermissions);
-                $role->save();
-
-                Notification::make()
-                    ->title('Success')
-                    ->body('Role updated successfully with permissions!')
-                    ->success()
-                    ->send();
-
-                $this->isEditing = false;
-                $this->loadRoles();
-            }
+        if (!$this->roleId) {
+            return $this->sendNotification('Error', 'No role selected!', 'danger');
         }
+
+        $role = Role::find($this->roleId);
+        if (!$role) {
+            return $this->sendNotification('Error', 'Role not found!', 'danger');
+        }
+
+        $role->update(['name' => $this->roleName]);
+        $role->syncPermissions($this->selectedPermissions);
+
+        $this->sendNotification('Success', 'Role updated successfully!', 'success');
+        $this->isEditing = false;
+        $this->loadRoles();
     }
 
-    public static function canAccess(): bool
+    private function sendNotification(string $title, string $message, string $type)
     {
-        return auth()->user()?->can('role.view');
+        Notification::make()
+                    ->title($title)
+                    ->body($message)
+            ->{$type}()
+                ->send();
     }
 }
