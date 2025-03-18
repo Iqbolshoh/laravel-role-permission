@@ -11,28 +11,13 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create roles
-        $roles = [
-            'superadmin',
-            'teacher',
-            'student'
-        ];
-
-        foreach ($roles as $role) {
-            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
-        }
 
         // Define permissions
         $permissions = [
-            'dashboard' => ['dashboard.view', 'dashboard.edit'],
+            'dashboard' => ['dashboard.view'],
             'role' => ['role.create', 'role.view', 'role.edit', 'role.delete'],
             'user' => ['user.create', 'user.view', 'user.edit', 'user.delete'],
-            'profile' => ['profile.view', 'profile.edit'],
-            'course' => ['course.create', 'course.view', 'course.edit', 'course.delete'],
-            'lesson' => ['lesson.create', 'lesson.view', 'lesson.edit', 'lesson.delete'],
-            'test' => ['test.create', 'test.view', 'test.edit', 'test.delete'],
-            'certificate' => ['certificate.create', 'certificate.view', 'certificate.edit', 'certificate.delete'],
-            'payment' => ['payment.view', 'payment.process', 'payment.refund'],
+            'profile' => ['profile.view', 'profile.edit']
         ];
 
         foreach ($permissions as $group => $perms) {
@@ -41,35 +26,19 @@ class RolePermissionSeeder extends Seeder
             }
         }
 
+        // Create roles
+        $roles = ['superadmin', 'user'];
+
+        foreach ($roles as $role) {
+            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
+
         // Assign permissions to roles
         $rolePermissions = [
-            'teacher' => [
+            'user' => [
                 'dashboard.view',
                 'profile.view',
                 'profile.edit',
-                'course.create',
-                'course.view',
-                'course.edit',
-                'course.delete',
-                'lesson.create',
-                'lesson.view',
-                'lesson.edit',
-                'lesson.delete',
-                'test.create',
-                'test.view',
-                'test.edit',
-                'test.delete',
-                'certificate.view',
-            ],
-            'student' => [
-                'dashboard.view',
-                'profile.view',
-                'profile.edit',
-                'course.view',
-                'lesson.view',
-                'test.view',
-                'certificate.view',
-                'payment.view',
             ]
         ];
 
@@ -83,8 +52,7 @@ class RolePermissionSeeder extends Seeder
         // Assign roles to users
         $users = [
             'admin@iqbolshoh.uz' => 'superadmin',
-            'teacher@iqbolshoh.uz' => 'teacher',
-            'student@iqbolshoh.uz' => 'student',
+            'user@iqbolshoh.uz' => 'user',
         ];
 
         foreach ($users as $email => $role) {

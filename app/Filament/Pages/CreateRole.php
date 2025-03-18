@@ -5,7 +5,8 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Filament\Notifications\Notification;
 
 class CreateRole extends Page
 {
@@ -14,8 +15,9 @@ class CreateRole extends Page
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 1;
 
-    public $roles;
-    public $groupedPermissions = [];
+    public string $name = '';
+    public array $selectedPermissions = [];
+    public array $groupedPermissions = [];
 
     public static function canAccess(): bool
     {
@@ -27,26 +29,29 @@ class CreateRole extends Page
         $permissions = Permission::all()->groupBy(function ($perm) {
             return explode('.', $perm->name)[0];
         })->map(function ($group) {
-            return $group->values();
-        });
+            return $group->toArray();
+        })->toArray();
 
         $this->groupedPermissions = $permissions;
     }
 
-    public function save(Request $request)
+    public function save()
     {
-        $validated = $request->validate([
+        $this->validate([
             'name' => 'required|string|unique:roles,name',
-            'permissions' => 'array',
+            'selectedPermissions' => 'array',
         ]);
 
-        $role = Role::create(['name' => $validated['name']]);
-        if (!empty($validated['permissions'])) {
-            $role->syncPermissions($validated['permissions']);
-        }
+        $role = Role::create(['name' => $this->name]);
+        $role->syncPermissions($this->selectedPermissions);
 
-        session()->flash('success', 'Role created successfully!');
+        Notification::make()
+            ->title('Success')
+            ->body('Role created successfully!')
+            ->success()
+            ->send();
 
-        return redirect()->route('filament.pages.create-role');
+        $this->dispatch('roleCreated');
+        $this->reset('name', 'selectedPermissions');
     }
 }

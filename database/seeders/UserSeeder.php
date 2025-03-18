@@ -17,13 +17,8 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('IQBOLSHOH')
             ],
             [
-                'name' => 'Teacher User',
-                'email' => 'teacher@iqbolshoh.uz',
-                'password' => Hash::make('IQBOLSHOH')
-            ],
-            [
-                'name' => 'Student User',
-                'email' => 'student@iqbolshoh.uz',
+                'name' => 'User',
+                'email' => 'user@iqbolshoh.uz',
                 'password' => Hash::make('IQBOLSHOH')
             ],
         ];
@@ -32,6 +27,6 @@ class UserSeeder extends Seeder
             User::create($data);
         }
 
-        $this->command->info('Users table seeded with Admin, Teacher, and Student!');
+        $this->command->info('Users table seeded with Admin and User!');
     }
 }

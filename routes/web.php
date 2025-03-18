@@ -19,3 +19,7 @@ Route::middleware('auth')->group(function () {
         ]);
     })->middleware('permission:role.delete');
 });
+
+Route::get('/admin', function () {
+    return view('bootsrap');
+});
