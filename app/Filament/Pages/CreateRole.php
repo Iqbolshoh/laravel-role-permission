@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Validation\ValidationException;
 use Filament\Notifications\Notification;
 
 class CreateRole extends Page
@@ -26,20 +25,36 @@ class CreateRole extends Page
 
     public function mount()
     {
-        $permissions = Permission::all()->groupBy(function ($perm) {
-            return explode('.', $perm->name)[0];
-        })->map(function ($group) {
-            return $group->toArray();
-        })->toArray();
+        $this->groupedPermissions = Permission::all()->groupBy(fn($perm) => explode('.', $perm->name)[0])->toArray();
+    }
 
-        $this->groupedPermissions = $permissions;
+    public function checkRoleName()
+    {
+        if (Role::where('name', $this->name)->exists()) {
+            Notification::make()
+                ->title('Error')
+                ->body('This role name already exists!')
+                ->danger()
+                ->send();
+
+            return false;
+        }
+        return true;
     }
 
     public function save()
     {
+        if (!$this->checkRoleName()) {
+            return;
+        }
+
         $this->validate([
             'name' => 'required|string|unique:roles,name',
-            'selectedPermissions' => 'array',
+            'selectedPermissions' => 'required|array|min:1',
+        ], [
+            'name.unique' => 'This role name already exists!',
+            'selectedPermissions.required' => 'At least one permission must be selected!',
+            'selectedPermissions.min' => 'At least one permission must be selected!',
         ]);
 
         $role = Role::create(['name' => $this->name]);
