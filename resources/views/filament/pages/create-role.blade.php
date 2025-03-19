@@ -17,9 +17,6 @@
                 <label class="block font-semibold">Role Name:</label>
                 <input type="text" wire:model.defer="name"
                     class="w-full p-2 border rounded-md focus:ring-blue-300 dark:bg-gray-800 dark:text-white" required>
-                @error('name')
-                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                @enderror
             </div>
 
             <div class="mb-4 space-y-6">
@@ -41,31 +38,19 @@
                 @endforeach
             </div>
 
-            @error('selectedPermissions')
-                <script>
-                    document.addEventListener("DOMContentLoaded", function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: '{{ $message }}',
-                        });
-                    });
-                </script>
-            @enderror
-
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-black font-semibold py-2 px-4 rounded-lg 
-           border border-blue-600 shadow-lg hover:shadow-xl 
-           hover:from-blue-600 hover:to-blue-700 hover:text-white hover:border-blue-700 
-           dark:bg-gradient-to-r dark:from-gray-800 dark:to-gray-900 dark:border-gray-600 dark:text-white 
-           dark:hover:from-gray-700 dark:hover:to-gray-800 dark:hover:border-gray-500 
-           transition duration-300 ease-in-out transform hover:scale-105">
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold py-2 px-4 rounded-xl 
+       border-2 border-blue-700 shadow-2xl hover:shadow-2xl 
+       hover:from-blue-600 hover:to-blue-800 hover:border-blue-800 
+       dark:bg-gradient-to-r dark:from-gray-900 dark:to-gray-950 dark:border-gray-700 dark:text-white 
+       dark:hover:from-gray-800 dark:hover:to-gray-900 dark:hover:border-gray-600 
+       transition duration-300 ease-in-out transform hover:scale-105 active:scale-95">
                 Create Role
             </button>
         </form>
+
     </div>
 </x-filament-panels::page>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const submitButton = document.querySelector('button[type="submit"]');

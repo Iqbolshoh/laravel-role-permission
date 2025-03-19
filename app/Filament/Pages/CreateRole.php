@@ -51,20 +51,12 @@ class CreateRole extends Page
         $this->validate([
             'name' => 'required|string|unique:roles,name',
             'selectedPermissions' => 'required|array|min:1',
-        ], [
-            'name.unique' => 'This role name already exists!',
-            'selectedPermissions.required' => 'At least one permission must be selected!',
-            'selectedPermissions.min' => 'At least one permission must be selected!',
         ]);
 
         $role = Role::create(['name' => $this->name]);
         $role->syncPermissions($this->selectedPermissions);
 
-        Notification::make()
-            ->title('Success')
-            ->body('Role created successfully!')
-            ->success()
-            ->send();
+        Notification::make()->title('Success')->body('Role created successfully!')->success()->send();
 
         $this->dispatch('roleCreated');
         $this->reset('name', 'selectedPermissions');
