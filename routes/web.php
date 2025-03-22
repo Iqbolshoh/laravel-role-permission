@@ -22,9 +22,9 @@ Route::middleware('auth')->group(function () {
     */
 
     Route::prefix('role')->group(function () {
-        Route::post('create', [Pages\CreateRole::class, 'create'])->name('filament.pages.create-role'); // Create a new role
-        Route::get('{role}/edit', Pages\ManageRoles::class)->middleware('permission:role.edit'); // Edit an existing role
-        Route::delete('{role}/delete', [Pages\ManageRoles::class, 'deleteRole'])->middleware('permission:role.delete'); // Delete a role
+        Route::post('create', [Pages\CreateRole::class, 'create'])->middleware('permission:role.create');
+        Route::get('{role}/edit', Pages\ManageRoles::class)->middleware('permission:role.edit');
+        Route::delete('{role}/delete', [Pages\ManageRoles::class, 'deleteRole'])->middleware('permission:role.delete');
     });
 
 });
