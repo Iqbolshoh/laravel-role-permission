@@ -17,26 +17,53 @@ class CreateRole extends Page
     public array $selectedPermissions = [];
     public array $groupedPermissions = [];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Access Control
+    |--------------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page.
+    */
     public static function canAccess(): bool
     {
         return auth()->user()?->can('role.create');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Component Initialization
+    |--------------------------------------------------------------------------
+    | Runs when the page is mounted. It loads all permissions and groups them
+    | based on their prefixes.
+    */
     public function mount()
     {
         $this->groupedPermissions = Permission::all()->groupBy(fn($perm) => explode('.', $perm->name)[0])->toArray();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Helper
+    |--------------------------------------------------------------------------
+    | Sends notifications to the user interface.
+    */
     private function notify(string $title, string $message, string $type = 'success')
     {
         Notification::make()->title($title)->body($message)->{$type}()->send();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Create New Role
+    |--------------------------------------------------------------------------
+    | Handles the creation of a new role with selected permissions.
+    | Validates user input and ensures role uniqueness.
+    */
     public function create()
     {
         if (Role::where('name', $this->name)->exists()) {
             return $this->notify('Error', "Role '{$this->name}' already exists!", 'danger');
         }
+
         if (empty($this->selectedPermissions)) {
             return $this->notify('Warning', 'You must select at least one permission!', 'warning');
         }

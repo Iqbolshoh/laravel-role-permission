@@ -1,20 +1,19 @@
 <x-filament-panels::page>
     <div class="p-6 space-y-6">
-        @if(session('success'))
-            <div class="p-3 text-green-700 bg-green-200 dark:bg-green-900 dark:text-green-300 rounded-md">
-                {{ session('success') }}
-            </div>
-        @endif
-
+        
+        {{-- Edit Modal --}}
         @if ($isEditing)
-            <div class="EditModal">
-                <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg mt-6">
+            <div class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 w-full h-full">
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-lg">
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-200 mb-4">Edit Role</h2>
+
+                    {{-- Role Name Input --}}
                     <input type="text" wire:model="roleName"
                         class="w-full p-2 border rounded-md focus:ring focus:ring-blue-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
                         required>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    {{-- Permissions --}}
+                    <div class="grid grid-cols-2 gap-4 mt-4">
                         @foreach($groupedPermissions as $group => $permissions)
                             <div class="p-4 border rounded-md shadow-sm bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                                 <h3 class="font-semibold text-lg text-gray-800 dark:text-gray-200">{{ ucfirst($group) }}</h3>
@@ -31,14 +30,16 @@
                         @endforeach
                     </div>
 
+                    {{-- Action Buttons --}}
                     <div class="flex items-center gap-2 mt-4">
-                        <button wire:click="updateRole" class="btn-primary">Save Changes</button>
+                        <button wire:click="updateRole" class="btn-primary">Save</button>
                         <button wire:click="$set('isEditing', false)" class="btn-secondary">Cancel</button>
                     </div>
                 </div>
             </div>
         @endif
 
+        {{-- Roles Table --}}
         <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg">
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700">
                 <thead class="bg-gray-100 dark:bg-gray-800">
@@ -54,7 +55,7 @@
                             <td class="px-4 py-3 text-gray-900 dark:text-gray-200">{{ $role['name'] }}</td>
                             <td class="px-4 py-3 text-gray-900 dark:text-gray-200">{{ implode(', ', $role['permissions']) }}
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center flex gap-2 justify-center">
                                 <button wire:click="editRole({{ $role['id'] }})" class="btn-edit">Edit</button>
                                 <button wire:click="deleteRole({{ $role['id'] }})" class="btn-delete">Delete</button>
                             </td>
@@ -63,5 +64,6 @@
                 </tbody>
             </table>
         </div>
+
     </div>
 </x-filament-panels::page>

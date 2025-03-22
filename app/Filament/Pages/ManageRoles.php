@@ -22,11 +22,23 @@ class ManageRoles extends Page
     public string $roleName = '';
     public bool $isEditing = false;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Access Control
+    |--------------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page.
+    */
     public static function canAccess(): bool
     {
         return auth()->check() && auth()->user()->can('role.view');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Component Initialization
+    |--------------------------------------------------------------------------
+    | Loads existing roles and permissions when the page is mounted.
+    */
     public function mount()
     {
         $this->loadRoles();
@@ -34,11 +46,23 @@ class ManageRoles extends Page
         $this->groupPermissions();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    | Sends user-friendly notifications using Filament.
+    */
     private function notify(string $title, string $message, string $type = 'success')
     {
         Notification::make()->title($title)->body($message)->{$type}()->send();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Load Roles
+    |--------------------------------------------------------------------------
+    | Fetches all roles except 'superadmin' and includes their assigned permissions.
+    */
     private function loadRoles()
     {
         $this->roles = Role::where('name', '!=', 'superadmin')->with('permissions')->get()->map(function ($role) {
@@ -50,6 +74,12 @@ class ManageRoles extends Page
         })->toArray();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Group Permissions
+    |--------------------------------------------------------------------------
+    | Groups permissions by their category (prefix before the dot).
+    */
     private function groupPermissions()
     {
         $this->groupedPermissions = collect($this->permissions)->groupBy(function ($permission) {
@@ -57,6 +87,12 @@ class ManageRoles extends Page
         })->toArray();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Edit Role
+    |--------------------------------------------------------------------------
+    | Loads role details for editing, including assigned permissions.
+    */
     public function editRole($id)
     {
         $role = Role::findOrFail($id);
@@ -66,6 +102,12 @@ class ManageRoles extends Page
         $this->isEditing = true;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Update Role
+    |--------------------------------------------------------------------------
+    | Validates and updates an existing role with new details and permissions.
+    */
     public function updateRole()
     {
         $this->validate([
@@ -82,6 +124,12 @@ class ManageRoles extends Page
         $this->loadRoles();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Role
+    |--------------------------------------------------------------------------
+    | Removes a role from the system and updates the list dynamically.
+    */
     public function deleteRole($roleId)
     {
         $role = Role::findOrFail($roleId);
@@ -94,7 +142,12 @@ class ManageRoles extends Page
         $this->notify('Role Deleted', 'The role has been successfully deleted.');
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | Reset Form
+    |--------------------------------------------------------------------------
+    | Clears form inputs and resets the state after adding/updating a role.
+    */
     private function resetForm()
     {
         $this->roleId = null;
