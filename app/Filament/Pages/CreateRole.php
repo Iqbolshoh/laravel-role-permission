@@ -60,6 +60,10 @@ class CreateRole extends Page
     */
     public function create()
     {
+        if (!preg_match('/^[a-zA-Z_]+$/', $this->name)) {
+            return $this->notify('Error', "Role name can only contain letters (a-z, A-Z) and underscores (_).", 'danger');
+        }
+
         if (Role::where('name', $this->name)->exists()) {
             return $this->notify('Error', "Role '{$this->name}' already exists!", 'danger');
         }
@@ -69,7 +73,7 @@ class CreateRole extends Page
         }
 
         $this->validate([
-            'name' => 'required|string|unique:roles,name',
+            'name' => 'required|string|regex:/^[a-zA-Z_]+$/|unique:roles,name',
             'selectedPermissions' => 'required|array|min:1',
         ]);
 

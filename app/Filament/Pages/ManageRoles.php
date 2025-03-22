@@ -110,18 +110,30 @@ class ManageRoles extends Page
     */
     public function updateRole()
     {
+        if (!preg_match('/^[a-zA-Z_]+$/', $this->roleName)) {
+            return $this->notify('Error', "Role name can only contain letters (a-z, A-Z) and underscores (_).", 'danger');
+        }
+
+        if (Role::where('name', $this->roleName)->where('id', '!=', $this->roleId)->exists()) {
+            return $this->notify('Error', "Role '{$this->roleName}' already exists!", 'danger');
+        }
+
+        if (empty($this->selectedPermissions)) {
+            return $this->notify('Warning', 'You must select at least one permission!', 'warning');
+        }
+
         $this->validate([
             'roleName' => 'required|string|max:255',
+            'selectedPermissions' => 'required|array|min:1',
         ]);
 
         $role = Role::findOrFail($this->roleId);
         $role->update(['name' => $this->roleName]);
         $role->syncPermissions($this->selectedPermissions);
 
-        $this->notify('Role Updated', 'The role has been successfully updated.');
+        $this->isEditing = false;
 
-        $this->resetForm();
-        $this->loadRoles();
+        return $this->notify('Role Updated', 'The role has been successfully updated.');
     }
 
     /*
