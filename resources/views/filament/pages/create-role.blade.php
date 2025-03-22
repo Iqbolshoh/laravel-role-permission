@@ -4,6 +4,7 @@
         {{-- Role Creation Form --}}
         <form wire:submit.prevent="create" class="bg-white p-6 rounded-lg shadow-lg dark:bg-gray-900"
             action="role/create">
+
             {{-- Role Name Input --}}
             <div class="mb-4">
                 <label class="block font-semibold">Role Name:</label>
@@ -16,6 +17,7 @@
             <div class="mb-4 space-y-6">
                 @foreach($groupedPermissions as $group => $permissions)
                     <div class="p-4 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
+
                         {{-- Permission Group Name --}}
                         <h3 class="font-semibold text-lg text-gray-800 dark:text-gray-200">
                             {{ ucfirst($group) }}
