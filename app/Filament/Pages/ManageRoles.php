@@ -30,31 +30,36 @@ class ManageRoles extends Page
     public function mount()
     {
         $this->loadRoles();
-        $this->permissions = Permission::pluck('name')->toArray();
+        $this->permissions = Permission::all()->toArray();
         $this->groupPermissions();
+    }
+
+    private function notify(string $title, string $message, string $type = 'success')
+    {
+        Notification::make()->title($title)->body($message)->{$type}()->send();
     }
 
     private function loadRoles()
     {
-        $this->roles = Role::with('permissions')->get()->map(fn($role) => [
-            'id' => $role->id,
-            'name' => $role->name,
-            'permissions' => $role->permissions->pluck('name')->toArray(),
-        ])->toArray();
+        $this->roles = Role::where('name', '!=', 'superadmin')->with('permissions')->get()->map(function ($role) {
+            return [
+                'id' => $role->id,
+                'name' => $role->name,
+                'permissions' => $role->permissions->pluck('name')->toArray(),
+            ];
+        })->toArray();
     }
 
     private function groupPermissions()
     {
-        $this->groupedPermissions = Permission::all()->groupBy(fn($permission) => explode('.', $permission->name)[0] ?? 'Other')->toArray();
+        $this->groupedPermissions = collect($this->permissions)->groupBy(function ($permission) {
+            return explode('.', $permission['name'])[0];
+        })->toArray();
     }
 
-    public function editRole(int $roleId)
+    public function editRole($id)
     {
-        $role = Role::find($roleId);
-        if (!$role) {
-            return $this->sendNotification('Error', 'Role not found!', 'danger');
-        }
-
+        $role = Role::findOrFail($id);
         $this->roleId = $role->id;
         $this->roleName = $role->name;
         $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
@@ -63,29 +68,35 @@ class ManageRoles extends Page
 
     public function updateRole()
     {
-        if (!$this->roleId) {
-            return $this->sendNotification('Error', 'No role selected!', 'danger');
-        }
+        $this->validate([
+            'roleName' => 'required|string|max:255',
+        ]);
 
-        $role = Role::find($this->roleId);
-        if (!$role) {
-            return $this->sendNotification('Error', 'Role not found!', 'danger');
-        }
-
+        $role = Role::findOrFail($this->roleId);
         $role->update(['name' => $this->roleName]);
         $role->syncPermissions($this->selectedPermissions);
 
-        $this->sendNotification('Success', 'Role updated successfully!', 'success');
-        $this->isEditing = false;
+        $this->notify('Role Updated', 'The role has been successfully updated.');
+
+        $this->resetForm();
         $this->loadRoles();
     }
 
-    private function sendNotification(string $title, string $message, string $type)
+    public function deleteRole($id)
     {
-        Notification::make()
-                    ->title($title)
-                    ->body($message)
-            ->{$type}()
-                ->send();
+        $role = Role::findOrFail($id);
+        $role->delete();
+
+        $this->notify('Role Deleted', 'The role has been successfully deleted.');
+
+        $this->loadRoles();
+    }
+
+    private function resetForm()
+    {
+        $this->roleId = null;
+        $this->roleName = '';
+        $this->selectedPermissions = [];
+        $this->isEditing = false;
     }
 }
