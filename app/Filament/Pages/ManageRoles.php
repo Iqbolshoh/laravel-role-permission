@@ -82,14 +82,11 @@ class ManageRoles extends Page
         $this->loadRoles();
     }
 
-    public function deleteRole($id)
+    public function deleteRole(Role $role)
     {
-        $role = Role::findOrFail($id);
         $role->delete();
-
         $this->notify('Role Deleted', 'The role has been successfully deleted.');
-
-        $this->loadRoles();
+        return redirect()->route('filament.pages.manage-roles');
     }
 
     private function resetForm()
