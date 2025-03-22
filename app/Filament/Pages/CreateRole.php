@@ -3,8 +3,7 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\{Role, Permission};
 use Filament\Notifications\Notification;
 
 class CreateRole extends Page
@@ -28,24 +27,18 @@ class CreateRole extends Page
         $this->groupedPermissions = Permission::all()->groupBy(fn($perm) => explode('.', $perm->name)[0])->toArray();
     }
 
-    public function checkRoleName()
+    private function notify(string $title, string $message, string $type = 'success')
     {
-        if (Role::where('name', $this->name)->exists()) {
-            Notification::make()
-                ->title('Error')
-                ->body('This role name already exists!')
-                ->danger()
-                ->send();
-
-            return false;
-        }
-        return true;
+        Notification::make()->title($title)->body($message)->{$type}()->send();
     }
 
-    public function save()
+    public function create()
     {
-        if (!$this->checkRoleName()) {
-            return;
+        if (Role::where('name', $this->name)->exists()) {
+            return $this->notify('Error', "Role '{$this->name}' already exists!", 'danger');
+        }
+        if (empty($this->selectedPermissions)) {
+            return $this->notify('Warning', 'You must select at least one permission!', 'warning');
         }
 
         $this->validate([
@@ -53,11 +46,9 @@ class CreateRole extends Page
             'selectedPermissions' => 'required|array|min:1',
         ]);
 
-        $role = Role::create(['name' => $this->name]);
-        $role->syncPermissions($this->selectedPermissions);
+        Role::create(['name' => $this->name])->syncPermissions($this->selectedPermissions);
 
-        Notification::make()->title('Success')->body('Role created successfully!')->success()->send();
-
+        $this->notify('Success', "Role '{$this->name}' created successfully!");
         $this->dispatch('roleCreated');
         $this->reset('name', 'selectedPermissions');
     }

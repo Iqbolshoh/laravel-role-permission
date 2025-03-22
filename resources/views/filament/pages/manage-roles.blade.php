@@ -131,7 +131,7 @@
 
     function deleteRole(roleId) {
         if (!confirm('Are you sure you want to delete this role?')) return;
-        fetch(`/roles/${roleId}`, {
+        fetch(`/role/${roleId}`, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),

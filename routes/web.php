@@ -6,11 +6,9 @@ use Spatie\Permission\Models\Role;
 use App\Filament\Pages;
 
 Route::middleware('auth')->group(function () {
-    Route::post('/create-role', [CreateRole::class, 'save'])->name('filament.pages.create-role');
-
-    Route::get('/roles/{role}/edit', Pages\ManageRoles::class)->middleware('permission:role.edit');
-
-    Route::delete('/roles/{role}', function (Role $role) {
+    Route::post('/role/create', [CreateRole::class, 'create'])->name('filament.pages.create-role');
+    Route::get('/role/{role}/edit', Pages\ManageRoles::class)->middleware('permission:role.edit');
+    Route::delete('/role/{role}', function (Role $role) {
         $role->delete();
 
         return response()->json([
@@ -18,8 +16,4 @@ Route::middleware('auth')->group(function () {
             'message' => 'Role deleted successfully!',
         ]);
     })->middleware('permission:role.delete');
-});
-
-Route::get('/admin', function () {
-    return view('bootsrap');
 });
