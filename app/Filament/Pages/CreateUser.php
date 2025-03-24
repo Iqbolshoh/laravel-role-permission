@@ -2,10 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Helpers\Utils;
 use Filament\Pages\Page;
 use Filament\Forms\Form;
 use Filament\Forms\Components\{TextInput, Select};
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
@@ -21,16 +21,12 @@ class CreateUser extends Page
     public string $name = '';
     public string $email = '';
     public string $password = '';
+    public string $password_confirmation = ''; // Confirm Password
     public string $role = '';
 
     public static function canAccess(): bool
     {
         return auth()->user()?->can('user.create');
-    }
-
-    private function notify(string $title, string $message, string $type = 'success')
-    {
-        Notification::make()->title($title)->body($message)->{$type}()->send();
     }
 
     public function form(Form $form): Form
@@ -55,6 +51,12 @@ class CreateUser extends Page
                     ->required()
                     ->minLength(8),
 
+                TextInput::make('password_confirmation') // Confirm Password
+                    ->label('Confirm Password')
+                    ->password()
+                    ->required()
+                    ->same('password'),
+
                 Select::make('role')
                     ->label('User Role')
                     ->options(Role::pluck('name', 'name')->toArray())
@@ -69,20 +71,34 @@ class CreateUser extends Page
             'name' => $this->name,
             'email' => $this->email,
             'password' => $this->password,
+            'password_confirmation' => $this->password_confirmation,
             'role' => $this->role,
         ], [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|exists:roles,name',
         ]);
 
         if ($validator->fails()) {
             foreach ($validator->errors()->messages() as $field => $errors) {
                 foreach ($errors as $error) {
-                    $this->notify(ucfirst($field) . ' Error', $error, 'danger');
+                    Utils::notify(
+                        'Error',
+                        ucfirst($field) . ': ' . $error,
+                        'danger'
+                    );
                 }
             }
+            return;
+        }
+
+        if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
+            Utils::notify(
+                'Error',
+                'Email: Invalid email format!',
+                'danger'
+            );
             return;
         }
 
@@ -94,12 +110,12 @@ class CreateUser extends Page
 
         $user->assignRole($this->role);
 
-        Notification::make()
-            ->title('Success')
-            ->body("User '{$this->name}' created successfully with role '{$this->role}'!")
-            ->success()
-            ->send();
+        Utils::notify(
+            'Success',
+            "User '{$this->name}' created successfully with role '{$this->role}'!",
+            'success'
+        );
 
-        $this->reset('name', 'email', 'password', 'role');
+        $this->reset('name', 'email', 'password', 'password_confirmation', 'role');
     }
 }

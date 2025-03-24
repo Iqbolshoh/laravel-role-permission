@@ -4,7 +4,6 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use Spatie\Permission\Models\{Role, Permission};
-use Filament\Notifications\Notification;
 use App\Helpers\Utils;
 
 class CreateRole extends Page

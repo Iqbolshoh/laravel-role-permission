@@ -9,7 +9,6 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use App\Helpers\Utils;
-use Filament\Notifications\Notification;
 
 class ManageUsers extends Page
 {
@@ -29,7 +28,12 @@ class ManageUsers extends Page
 
     public function mount()
     {
-        $this->users = User::with('roles')->latest()->get();
+        $this->users = User::with('roles')
+            ->where('id', '!=', auth()->id())
+            ->latest()
+            ->get();
+
+        $this->roles = Role::where('name', '!=', 'superadmin')->with('permissions')->get();
     }
 
     protected function getViewData(): array
@@ -40,49 +44,67 @@ class ManageUsers extends Page
         ];
     }
 
+    public function editUser($userId)
+    {
+        $user = User::findOrFail($userId);
+        $this->userId = $user->id;
+        $this->name = $user->name;
+        $this->email = $user->email;
+        $this->role = $user->roles->pluck('name')->first();
+        $this->isEditMode = true;
+    }
 
-    public function create()
+    public function update()
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6',
-            'role' => 'required',
+            'email' => 'required|email|unique:users,email,' . $this->userId,
+            'role' => 'required|regex:/^[a-zA-Z0-9_]+$/',
         ]);
 
-        $user = User::create([
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->role)) {
+            return Utils::notify(
+                'Invalid Role Name',
+                "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
+                'danger'
+            );
+        }
+
+        $user = User::findOrFail($this->userId);
+        $user->update([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => Hash::make($this->password),
         ]);
 
-        $user->assignRole($this->role);
+        $user->syncRoles([$this->role]);
 
-        session()->flash('message', 'User created successfully.');
+        Utils::notify('Success', 'User updated successfully.', 'success');
+
         $this->resetForm();
+
+        $this->dispatch('closeModal'); 
+
+        return;
     }
 
-    private function resetForm()
+    public function resetForm()
     {
-        $this->name = '';
-        $this->email = '';
-        $this->password = '';
-        $this->role = '';
-        $this->userId = null;
-        $this->isEditMode = false;
+        $this->reset(['name', 'email', 'password', 'role', 'isEditMode']);
     }
+
 
     public function deleteUser($userId)
     {
         $user = User::findOrFail($userId);
-
+        $userName = $user->name;
         $user->delete();
 
         $this->users = User::with('roles')->latest()->get();
 
-        Notification::make()
-            ->title('User Deleted')
-            ->body('The user has been successfully deleted.')
-            ->send();
+        Utils::notify(
+            'User Deleted',
+            "User '{$userName}' has been successfully deleted!",
+            'success'
+        );
     }
 }

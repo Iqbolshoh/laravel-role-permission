@@ -110,7 +110,7 @@ class ManageRoles extends Page
         if (Role::where('name', $this->roleName)->where('id', '!=', $this->roleId)->exists()) {
             return Utils::notify(
                 'Role Already Exists',
-                "Role '{$this->name}' already exists! Please choose another name.",
+                "Role '{$this->roleName}' already exists! Please choose another name.",
                 'danger'
             );
         }
@@ -136,7 +136,7 @@ class ManageRoles extends Page
 
         return Utils::notify(
             'Role Updated Successfully',
-            "Role '{$this->name}' has been updated successfully!",
+            "Role '{$this->roleName}' has been updated successfully!",
             'success'
         );
     }
