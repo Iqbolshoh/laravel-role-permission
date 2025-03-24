@@ -5,7 +5,7 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Filament\Notifications\Notification;
+use App\Helpers\Utils;
 
 class ManageRoles extends Page
 {
@@ -44,17 +44,6 @@ class ManageRoles extends Page
         $this->loadRoles();
         $this->permissions = Permission::all()->toArray();
         $this->groupPermissions();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Notifications
-    |--------------------------------------------------------------------------
-    | Sends user-friendly notifications using Filament.
-    */
-    private function notify(string $title, string $message, string $type = 'success')
-    {
-        Notification::make()->title($title)->body($message)->{$type}()->send();
     }
 
     /*
@@ -110,16 +99,28 @@ class ManageRoles extends Page
     */
     public function updateRole()
     {
-        if (!preg_match('/^[a-zA-Z_]+$/', $this->roleName)) {
-            return $this->notify('Error', "Role name can only contain letters (a-z, A-Z) and underscores (_).", 'danger');
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->roleName)) {
+            return Utils::notify(
+                'Invalid Role Name',
+                "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
+                'danger'
+            );
         }
 
         if (Role::where('name', $this->roleName)->where('id', '!=', $this->roleId)->exists()) {
-            return $this->notify('Error', "Role '{$this->roleName}' already exists!", 'danger');
+            return Utils::notify(
+                'Role Already Exists',
+                "Role '{$this->name}' already exists! Please choose another name.",
+                'danger'
+            );
         }
 
         if (empty($this->selectedPermissions)) {
-            return $this->notify('Warning', 'You must select at least one permission!', 'warning');
+            return Utils::notify(
+                'No Permissions Selected',
+                'You must select at least one permission to create a role.',
+                'warning'
+            );
         }
 
         $this->validate([
@@ -133,7 +134,11 @@ class ManageRoles extends Page
 
         $this->isEditing = false;
 
-        return $this->notify('Role Updated', 'The role has been successfully updated.');
+        return Utils::notify(
+            'Role Updated Successfully',
+            "Role '{$this->name}' has been updated successfully!",
+            'success'
+        );
     }
 
     /*
@@ -145,13 +150,17 @@ class ManageRoles extends Page
     public function deleteRole($roleId)
     {
         $role = Role::findOrFail($roleId);
+        $roleName = $role->name;
         $role->delete();
 
         $this->roles = array_filter($this->roles, function ($role) use ($roleId) {
             return $role['id'] !== $roleId;
         });
 
-        $this->notify('Role Deleted', 'The role has been successfully deleted.');
+        Utils::notify(
+            'Role Deleted',
+            "Role '{$roleName}' has been deleted successfully!"
+        );
     }
 
     /*

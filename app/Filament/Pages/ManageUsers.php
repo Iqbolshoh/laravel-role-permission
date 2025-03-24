@@ -8,6 +8,7 @@ use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
+use App\Helpers\Utils;
 use Filament\Notifications\Notification;
 
 class ManageUsers extends Page
@@ -28,7 +29,7 @@ class ManageUsers extends Page
 
     public function mount()
     {
-        $this->users = User::with('roles')->latest()->get(); // Initialize $users when the component is mounted
+        $this->users = User::with('roles')->latest()->get();
     }
 
     protected function getViewData(): array
@@ -40,7 +41,6 @@ class ManageUsers extends Page
     }
 
 
-    // Foydalanuvchi yaratish metodi
     public function create()
     {
         $this->validate([
@@ -72,23 +72,17 @@ class ManageUsers extends Page
         $this->isEditMode = false;
     }
 
-    // Pages/ManageUsers.php
     public function deleteUser($userId)
     {
-        // Foydalanuvchini olish
         $user = User::findOrFail($userId);
 
-        // Foydalanuvchini o‘chirish
         $user->delete();
 
-        // Ro‘yxatdan foydalanuvchining o‘chirilishini olib tashlash
-        $this->users = User::with('roles')->latest()->get(); // Re-fetch users after deletion
+        $this->users = User::with('roles')->latest()->get();
 
-        // Notification yuborish
         Notification::make()
             ->title('User Deleted')
             ->body('The user has been successfully deleted.')
             ->send();
     }
 }
-

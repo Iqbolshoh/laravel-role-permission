@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Spatie\Permission\Models\{Role, Permission};
 use Filament\Notifications\Notification;
+use App\Helpers\Utils;
 
 class CreateRole extends Page
 {
@@ -42,17 +43,6 @@ class CreateRole extends Page
 
     /*
     |--------------------------------------------------------------------------
-    | Notification Helper
-    |--------------------------------------------------------------------------
-    | Sends notifications to the user interface.
-    */
-    private function notify(string $title, string $message, string $type = 'success')
-    {
-        Notification::make()->title($title)->body($message)->{$type}()->send();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
     | Create New Role
     |--------------------------------------------------------------------------
     | Handles the creation of a new role with selected permissions.
@@ -60,26 +50,43 @@ class CreateRole extends Page
     */
     public function create()
     {
-        if (!preg_match('/^[a-zA-Z_]+$/', $this->name)) {
-            return $this->notify('Error', "Role name can only contain letters (a-z, A-Z) and underscores (_).", 'danger');
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->name)) {
+            return Utils::notify(
+                'Invalid Role Name',
+                "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
+                'danger'
+            );
         }
 
         if (Role::where('name', $this->name)->exists()) {
-            return $this->notify('Error', "Role '{$this->name}' already exists!", 'danger');
+            return Utils::notify(
+                'Role Already Exists',
+                "Role '{$this->name}' already exists! Please choose another name.",
+                'danger'
+            );
         }
 
         if (empty($this->selectedPermissions)) {
-            return $this->notify('Warning', 'You must select at least one permission!', 'warning');
+            return Utils::notify(
+                'No Permissions Selected',
+                'You must select at least one permission to create a role.',
+                'warning'
+            );
         }
 
         $this->validate([
-            'name' => 'required|string|regex:/^[a-zA-Z_]+$/|unique:roles,name',
+            'name' => 'required|string|regex:/^[a-zA-Z0-9_]+$/|unique:roles,name',
             'selectedPermissions' => 'required|array|min:1',
         ]);
 
         Role::create(['name' => $this->name])->syncPermissions($this->selectedPermissions);
 
-        $this->notify('Success', "Role '{$this->name}' created successfully!");
+        Utils::notify(
+            'Role Created Successfully',
+            "Role '{$this->name}' has been created successfully!",
+            'success'
+        );
+
         $this->dispatch('roleCreated');
         $this->reset('name', 'selectedPermissions');
     }
