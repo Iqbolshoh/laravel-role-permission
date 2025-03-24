@@ -1,15 +1,11 @@
 <x-filament-panels::page>
     <div class="p-6 space-y-6">
-        {{-- Flash Message --}}
-        @if (session()->has('message'))
-            <div class="bg-green-500 text-white p-3 rounded-md">{{ session('message') }}</div>
-        @endif
 
         {{-- Edit Modal --}}
         @if ($isEditMode)
             <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
                 <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-xl w-full max-w-lg">
-                    <form wire:submit.prevent="{{ $isEditMode ? 'update' : 'create' }}">
+                    <form wire:submit.prevent="update">
                         <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-200 mb-4">Edit User</h2>
 
                         <div class="mb-4">
@@ -52,7 +48,7 @@
                         <div class="flex gap-4">
                             <button type="submit"
                                 class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300">
-                                {{ $isEditMode ? 'Update User' : 'Create User' }}
+                                Update User
                             </button>
 
                             <button type="button" wire:click="resetForm"
