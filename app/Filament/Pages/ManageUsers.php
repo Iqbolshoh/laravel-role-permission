@@ -9,6 +9,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use App\Helpers\Utils;
+use Illuminate\Support\Facades\Validator;
 
 class ManageUsers extends Page
 {
@@ -17,7 +18,7 @@ class ManageUsers extends Page
     protected static ?string $navigationGroup = 'Users';
     protected static ?int $navigationSort = 4;
 
-    public $name, $email, $password, $role, $userId;
+    public $name, $email, $password, $password_confirmation, $role, $userId;
     public $isEditMode = false;
     public $users;
 
@@ -29,11 +30,11 @@ class ManageUsers extends Page
     public function mount()
     {
         $this->users = User::with('roles')
-            ->where('id', '!=', auth()->id())
+            ->whereNot('id', auth()->id())
             ->latest()
             ->get();
 
-        $this->roles = Role::where('name', '!=', 'superadmin')->with('permissions')->get();
+        $this->roles = Role::whereNot('name', 'superadmin')->pluck('name')->toArray();
     }
 
     protected function getViewData(): array
@@ -56,42 +57,70 @@ class ManageUsers extends Page
 
     public function update()
     {
-        $this->validate([
+        $validator = Validator::make([
+            'name' => $this->name,
+            'email' => $this->email,
+            'password' => $this->password,
+            'password_confirmation' => $this->password_confirmation,
+            'role' => $this->role,
+        ], [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->userId,
-            'role' => 'required|regex:/^[a-zA-Z0-9_]+$/',
+            'password' => 'nullable|string|min:8|confirmed',
+            'role' => 'required|string|exists:roles,name',
         ]);
 
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->role)) {
-            return Utils::notify(
-                'Invalid Role Name',
-                "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
+        if ($validator->fails()) {
+            foreach ($validator->errors()->messages() as $field => $errors) {
+                foreach ($errors as $error) {
+                    Utils::notify(
+                        'Error',
+                        ucfirst($field) . ': ' . $error,
+                        'danger'
+                    );
+                }
+            }
+            return;
+        }
+
+        if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
+            Utils::notify(
+                'Error',
+                'Email: Invalid email format!',
                 'danger'
             );
+            return;
         }
 
         $user = User::findOrFail($this->userId);
-        $user->update([
+        $updateData = [
             'name' => $this->name,
             'email' => $this->email,
-        ]);
+        ];
 
+        if (!empty($this->password)) {
+            $updateData['password'] = Hash::make($this->password);
+        }
+
+        $user->update($updateData);
         $user->syncRoles([$this->role]);
+        
+        $this->users = User::with('roles')->latest()->get();
 
-        Utils::notify('Success', 'User updated successfully.', 'success');
+        Utils::notify(
+            'Success',
+            "User '{$this->name}' updated successfully with role '{$this->role}'!",
+            'success'
+        );
 
         $this->resetForm();
-
-        $this->dispatch('closeModal'); 
-
-        return;
+        $this->dispatch('closeModal');
     }
 
     public function resetForm()
     {
-        $this->reset(['name', 'email', 'password', 'role', 'isEditMode']);
+        $this->reset(['name', 'email', 'password', 'role', 'userId', 'isEditMode']);
     }
-
 
     public function deleteUser($userId)
     {

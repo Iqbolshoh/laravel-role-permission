@@ -26,14 +26,17 @@
                                 required>
                         </div>
 
-                        @if (!$isEditMode)
-                            <div class="mb-4">
-                                <label class="block font-semibold text-gray-900 dark:text-gray-200">Password:</label>
-                                <input type="password" wire:model.defer="password"
-                                    class="w-full p-2 border rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200"
-                                    required>
-                            </div>
-                        @endif
+                        <div class="mb-4">
+                            <label class="block font-semibold text-gray-900 dark:text-gray-200">Password:</label>
+                            <input type="password" wire:model.defer="password"
+                                class="w-full p-2 border rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block font-semibold text-gray-900 dark:text-gray-200">Confirm Password:</label>
+                            <input type="password" wire:model.defer="password_confirmation"
+                                class="w-full p-2 border rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200">
+                        </div>
 
                         <div class="mb-4">
                             <label class="block font-semibold text-gray-900 dark:text-gray-200">Select Role:</label>
