@@ -40,5 +40,5 @@ Route::middleware('auth')->group(function () {
         Route::get('{user}/edit', Pages\ManageUsers::class)->middleware('permission:user.edit');
         Route::delete('{user}/delete', [Pages\ManageUsers::class, 'deleteUser'])->middleware('permission:user.delete');
     });
-
+    
 });
