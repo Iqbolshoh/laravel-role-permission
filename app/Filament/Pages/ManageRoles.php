@@ -99,7 +99,9 @@ class ManageRoles extends Page
     */
     public function updateRole()
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->roleName)) {
+        $roleName = $this->roleName;
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $roleName)) {
             return Utils::notify(
                 'Invalid Role Name',
                 "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
@@ -107,10 +109,10 @@ class ManageRoles extends Page
             );
         }
 
-        if (Role::where('name', $this->roleName)->where('id', '!=', $this->roleId)->exists()) {
+        if (Role::where('name', $roleName)->where('id', '!=', $this->roleId)->exists()) {
             return Utils::notify(
                 'Role Already Exists',
-                "Role '{$this->roleName}' already exists! Please choose another name.",
+                "Role '{$roleName}' already exists! Please choose another name.",
                 'danger'
             );
         }
@@ -129,14 +131,15 @@ class ManageRoles extends Page
         ]);
 
         $role = Role::findOrFail($this->roleId);
-        $role->update(['name' => $this->roleName]);
+        $role->update(['name' => $roleName]);
         $role->syncPermissions($this->selectedPermissions);
 
-        $this->isEditing = false;
+        $this->resetForm();
+        $this->loadRoles();
 
         return Utils::notify(
             'Role Updated Successfully',
-            "Role '{$this->roleName}' has been updated successfully!",
+            "Role '{$roleName}' has been updated successfully!",
             'success'
         );
     }
@@ -175,5 +178,16 @@ class ManageRoles extends Page
         $this->roleName = '';
         $this->selectedPermissions = [];
         $this->isEditing = false;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cancel Edit
+    |--------------------------------------------------------------------------
+    | Cancels the edit state and resets the form.
+    */
+    public function cancelEdit()
+    {
+        $this->resetForm();
     }
 }

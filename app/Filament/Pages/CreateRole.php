@@ -13,8 +13,8 @@ class CreateRole extends Page
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 1;
 
-    public string $name = '';
-    public array $selectedPermissions = [];
+    public string $roleName = '';
+    public array $permissions = [];
     public array $groupedPermissions = [];
 
     /*
@@ -30,10 +30,10 @@ class CreateRole extends Page
 
     /*
     |--------------------------------------------------------------------------
-    | Component Initialization
+    | Mount Method
     |--------------------------------------------------------------------------
-    | Runs when the page is mounted. It loads all permissions and groups them
-    | based on their prefixes.
+    | Fetches all available permissions and groups them by their prefix.
+    | This method is executed when the component is initialized.
     */
     public function mount()
     {
@@ -42,14 +42,14 @@ class CreateRole extends Page
 
     /*
     |--------------------------------------------------------------------------
-    | Create New Role
+    | Save Method
     |--------------------------------------------------------------------------
-    | Handles the creation of a new role with selected permissions.
-    | Validates user input and ensures role uniqueness.
+    | Handles the creation of a new role with assigned permissions.
+    | It validates input data, checks for duplicates, and saves the role.
     */
-    public function create()
+    public function save()
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->name)) {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->roleName)) {
             return Utils::notify(
                 'Invalid Role Name',
                 "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
@@ -57,15 +57,15 @@ class CreateRole extends Page
             );
         }
 
-        if (Role::where('name', $this->name)->exists()) {
+        if (Role::where('name', $this->roleName)->exists()) {
             return Utils::notify(
                 'Role Already Exists',
-                "Role '{$this->name}' already exists! Please choose another name.",
+                "Role '{$this->roleName}' already exists! Please choose another name.",
                 'danger'
             );
         }
 
-        if (empty($this->selectedPermissions)) {
+        if (empty($this->permissions)) {
             return Utils::notify(
                 'No Permissions Selected',
                 'You must select at least one permission to create a role.',
@@ -73,20 +73,10 @@ class CreateRole extends Page
             );
         }
 
-        $this->validate([
-            'name' => 'required|string|regex:/^[a-zA-Z0-9_]+$/|unique:roles,name',
-            'selectedPermissions' => 'required|array|min:1',
-        ]);
-
-        Role::create(['name' => $this->name])->syncPermissions($this->selectedPermissions);
-
-        Utils::notify(
-            'Role Created Successfully',
-            "Role '{$this->name}' has been created successfully!",
-            'success'
-        );
+        Role::create(['name' => $this->roleName])->syncPermissions($this->permissions);
+        Utils::notify('Success', "Role '{$this->roleName}' created!", 'success');
 
         $this->dispatch('roleCreated');
-        $this->reset('name', 'selectedPermissions');
+        $this->reset('roleName', 'permissions');
     }
 }
