@@ -3,7 +3,13 @@
         @if ($isEditing)
             <div class="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg overflow-x-auto">
                 <form wire:submit.prevent="updateRole">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Edit Role</h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Edit Role</h2>
+                        <button type="button" wire:click="cancelEdit"
+                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <span class="text-2xl">×</span>
+                        </button>
+                    </div>
 
                     <!-- Role Name -->
                     <div class="mb-4">
