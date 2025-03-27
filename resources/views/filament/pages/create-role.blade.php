@@ -1,6 +1,6 @@
 <x-filament-panels::page>
-    <div class="space-y-6">
+    <x-filament-panels::form wire:submit="create">
         {{ $this->form }}
-        <x-filament::button wire:click="save" color="primary">Save Role</x-filament::button>
-    </div>
+        <x-filament-panels::form.actions :actions="$this->getFormActions()" />
+    </x-filament-panels::form>
 </x-filament-panels::page>
