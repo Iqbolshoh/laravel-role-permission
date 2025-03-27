@@ -39,7 +39,7 @@ class CreateRole extends Page
     |--------------------------------------------------------------------------
     | Form Definition
     |--------------------------------------------------------------------------
-    |  Define the form structure for creating a role.
+    | Define the form structure for creating a role.
     */
     public function form(Form $form): Form
     {
@@ -83,8 +83,6 @@ class CreateRole extends Page
                             "select_all_{$group}",
                             count(array_intersect($state ?? [], array_keys($perms))) === count($perms)
                         )),
-
-
                 ])
                 ->collapsible()
                 ->compact();
@@ -98,7 +96,7 @@ class CreateRole extends Page
     | Role Creation
     |--------------------------------------------------------------------------
     | Handle role creation with validation and permission assignment.
-     */
+    */
     public function create(): void
     {
         $validated = $this->form->getState();
@@ -124,7 +122,7 @@ class CreateRole extends Page
     |--------------------------------------------------------------------------
     | Form Actions
     |--------------------------------------------------------------------------
-    |  Define the form submission actions.
+    | Define the form submission actions.
     */
     protected function getFormActions(): array
     {

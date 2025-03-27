@@ -13,12 +13,9 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use App\Helpers\Utils;
 
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
 
-class CreateUser extends Page implements HasForms
+class CreateUser extends Page
 {
-    use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
     protected static string $view = 'filament.pages.create-user';
@@ -29,7 +26,7 @@ class CreateUser extends Page implements HasForms
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
-    public ?string $role = null; // Bitta role tanlash uchun string sifatida saqlanadi
+    public ?string $role = null;
 
     public static function canAccess(): bool
     {
