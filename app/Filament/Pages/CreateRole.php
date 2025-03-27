@@ -3,8 +3,14 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Spatie\Permission\Models\{Role, Permission};
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\CheckboxList;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use App\Helpers\Utils;
+use Filament\Actions\Action;
 
 class CreateRole extends Page
 {
@@ -13,43 +19,44 @@ class CreateRole extends Page
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 1;
 
-    public string $roleName = '';
-    public array $permissions = [];
-    public array $groupedPermissions = [];
+    public array $formData = [
+        'roleName' => '',
+        'permissions' => [],
+    ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Access Control
-    |--------------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page.
-    */
     public static function canAccess(): bool
     {
         return auth()->user()?->can('role.create');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Mount Method
-    |--------------------------------------------------------------------------
-    | Fetches all available permissions and groups them by their prefix.
-    | This method is executed when the component is initialized.
-    */
-    public function mount()
+    public function form(Form $form): Form
     {
-        $this->groupedPermissions = Permission::all()->groupBy(fn($perm) => explode('.', $perm->name)[0])->toArray();
+        return $form
+            ->schema([
+                TextInput::make('roleName')
+                    ->label('Role Name')
+                    ->required()
+                    ->regex('/^[a-zA-Z0-9_]+$/')
+                    ->maxLength(255)
+                    ->placeholder('Enter role name'),
+
+                CheckboxList::make('permissions')
+                    ->label('Permissions')
+                    ->options(Permission::all()->pluck('name', 'name'))
+                    ->columns(2)
+                    ->default([]),
+            ])
+            ->statePath('formData');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Save Method
-    |--------------------------------------------------------------------------
-    | Handles the creation of a new role with assigned permissions.
-    | It validates input data, checks for duplicates, and saves the role.
-    */
     public function save()
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->roleName)) {
+        $validated = $this->form->getState();
+
+        $roleName = $validated['roleName'];
+        $permissions = $validated['permissions'];
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $roleName)) {
             return Utils::notify(
                 'Invalid Role Name',
                 "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
@@ -57,15 +64,15 @@ class CreateRole extends Page
             );
         }
 
-        if (Role::where('name', $this->roleName)->exists()) {
+        if (Role::where('name', $roleName)->exists()) {
             return Utils::notify(
                 'Role Already Exists',
-                "Role '{$this->roleName}' already exists! Please choose another name.",
+                "Role '{$roleName}' already exists! Please choose another name.",
                 'danger'
             );
         }
 
-        if (empty($this->permissions)) {
+        if (empty($permissions)) {
             return Utils::notify(
                 'No Permissions Selected',
                 'You must select at least one permission to create a role.',
@@ -73,10 +80,25 @@ class CreateRole extends Page
             );
         }
 
-        Role::create(['name' => $this->roleName])->syncPermissions($this->permissions);
-        Utils::notify('Success', "Role '{$this->roleName}' created!", 'success');
+        $role = Role::create(['name' => $roleName]);
+        $role->syncPermissions($permissions);
 
+        Utils::notify('Success', "Role '{$roleName}' created!", 'success');
+
+        $this->reset('formData');
         $this->dispatch('roleCreated');
-        $this->reset('roleName', 'permissions');
+    }
+
+    protected function getActions(): array
+    {
+        return [
+            Action::make('submitAction')
+                ->label('Create Role')
+                ->submit('save')
+                ->color('primary')
+                ->extraAttributes([
+                    'class' => 'px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring focus:ring-indigo-200 focus:ring-opacity-50',
+                ]),
+        ];
     }
 }
