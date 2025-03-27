@@ -1,6 +1,6 @@
 <x-filament-panels::page>
-    <form wire:submit.prevent="save" class="space-y-6">
+    <div class="space-y-6">
         {{ $this->form }}
-        {{ $this->submitAction }}
-    </form>
+        <x-filament::button wire:click="save" color="primary">Save Role</x-filament::button>
+    </div>
 </x-filament-panels::page>

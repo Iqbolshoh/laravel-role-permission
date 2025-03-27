@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Checkbox;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Helpers\Utils;
@@ -15,7 +16,7 @@ use Filament\Actions\Action;
 
 class CreateRole extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-plus-circle';
+    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
     protected static string $view = 'filament.pages.create-role';
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 1;
@@ -32,13 +33,13 @@ class CreateRole extends Page
 
     public function form(Form $form): Form
     {
-        $permissions = Permission::all()->pluck('name', 'name')->toArray();
-
-        $groupedPermissions = [];
-        foreach ($permissions as $permission) {
-            [$group, $action] = explode('.', $permission, 2);
-            $groupedPermissions[$group][] = $permission;
-        }
+        $permissions = Permission::all()->pluck('name')->groupBy(function ($perm) {
+            return explode('.', $perm, 2)[0];
+        })->map(function ($group) {
+            return $group->mapWithKeys(function ($perm) {
+                return [$perm => ucfirst(explode('.', $perm)[1])];
+            })->all();
+        })->all();
 
         $schema = [
             Section::make('Role Details')
@@ -50,21 +51,33 @@ class CreateRole extends Page
                         ->regex('/^[a-zA-Z0-9_]+$/')
                         ->maxLength(255)
                         ->placeholder('e.g., admin_role')
-                        ->extraAttributes(['class' => 'w-full']),
+                        ->unique(table: Role::class, column: 'name')
+                        ->validationMessages([
+                            'unique' => 'This role name already exists.',
+                            'regex' => 'Role name can only contain letters, numbers, and underscores.',
+                        ]),
                 ])
                 ->collapsible()
                 ->compact(),
         ];
 
-        foreach ($groupedPermissions as $group => $perms) {
+        foreach ($permissions as $group => $perms) {
             $schema[] = Section::make(ucfirst($group) . ' Permissions')
                 ->schema([
                     CheckboxList::make('permissions')
                         ->label('')
-                        ->options(array_combine($perms, array_map(fn($perm) => ucfirst(explode('.', $perm)[1]), $perms)))
-                        ->columns(count($perms))
-                        ->default([])
-                        ->extraAttributes(['class' => 'gap-4']),
+                        ->options($perms)
+                        ->columns(min(4, count($perms)))
+                        ->bulkToggleable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) use ($group, $permissions) {
+                            $groupPerms = array_keys($permissions[$group]);
+                            $selectedGroupPerms = array_intersect($state ?? [], $groupPerms);
+                            $set(
+                                "select_all_{$group}",
+                                count($selectedGroupPerms) === count($groupPerms)
+                            );
+                        }),
                 ])
                 ->collapsible()
                 ->compact();
@@ -78,53 +91,53 @@ class CreateRole extends Page
     public function save()
     {
         $validated = $this->form->getState();
-
-        $roleName = $validated['roleName'];
-        $permissions = $validated['permissions'];
-
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $roleName)) {
-            return Utils::notify(
+        
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $validated['roleName'])) {
+            Utils::notify(
                 'Invalid Role Name',
                 "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
                 'danger'
             );
+            return;
         }
 
-        if (Role::where('name', $roleName)->exists()) {
-            return Utils::notify(
+        if (Role::where('name', $validated['roleName'])->exists()) {
+            Utils::notify(
                 'Role Already Exists',
-                "Role '{$roleName}' already exists! Please choose another name.",
+                "Role '{$validated['roleName']}' already exists! Please choose another name.",
                 'danger'
             );
+            return;
         }
 
-        if (empty($permissions)) {
-            return Utils::notify(
+        if (empty($validated['permissions'])) {
+            Utils::notify(
                 'No Permissions Selected',
                 'You must select at least one permission to create a role.',
                 'warning'
             );
+            return;
         }
 
-        $role = Role::create(['name' => $roleName]);
-        $role->syncPermissions($permissions);
+        try {
+            $role = Role::create(['name' => $validated['roleName']]);
+            $role->syncPermissions($validated['permissions']);
 
-        Utils::notify('Success', "Role '{$roleName}' created!", 'success');
-
-        $this->reset('formData');
-        $this->dispatch('roleCreated');
+            Utils::notify('Success', "Role '{$role->name}' created successfully!", 'success');
+            $this->reset('formData');
+            $this->dispatch('roleCreated');
+        } catch (\Exception $e) {
+            Utils::notify('Error', 'Failed to create role: ' . $e->getMessage(), 'danger');
+        }
     }
 
-    protected function getActions(): array
+    protected function getFormActions(): array
     {
         return [
-            Action::make('submitAction')
+            Action::make('save')
                 ->label('Create Role')
                 ->submit('save')
-                ->color('primary')
-                ->extraAttributes([
-                    'class' => 'px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition ease-in-out duration-200',
-                ]),
+                ->color('primary'),
         ];
     }
 }
