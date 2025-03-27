@@ -3,191 +3,59 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\DeleteBulkAction;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use App\Helpers\Utils;
 
-class ManageRoles extends Page
+class ManageRoles extends Page implements HasTable
 {
+    use InteractsWithTable; 
+
     protected static ?string $navigationIcon = 'heroicon-o-cog';
     protected static string $view = 'filament.pages.manage-roles';
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 2;
 
-    public array $roles = [];
-    public array $permissions = [];
-    public array $selectedPermissions = [];
-    public array $groupedPermissions = [];
-    public ?int $roleId = null;
-    public string $roleName = '';
-    public bool $isEditing = false;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Access Control
-    |--------------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page.
-    */
     public static function canAccess(): bool
     {
         return auth()->check() && auth()->user()->can('role.view');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Component Initialization
-    |--------------------------------------------------------------------------
-    | Loads existing roles and permissions when the page is mounted.
-    */
-    public function mount()
+    protected function getTableQuery()
     {
-        $this->loadRoles();
-        $this->permissions = Permission::all()->toArray();
-        $this->groupPermissions();
+        return Role::query();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Load Roles
-    |--------------------------------------------------------------------------
-    | Fetches all roles except 'superadmin' and includes their assigned permissions.
-    */
-    private function loadRoles()
+    protected function getTableColumns(): array
     {
-        $this->roles = Role::where('name', '!=', 'superadmin')->with('permissions')->get()->map(function ($role) {
-            return [
-                'id' => $role->id,
-                'name' => $role->name,
-                'permissions' => $role->permissions->pluck('name')->toArray(),
-            ];
-        })->toArray();
+        return [
+            TextColumn::make('id')->label('ID')->sortable(),
+            TextColumn::make('name')->label('Role Name')->searchable(),
+            TextColumn::make('created_at')->label('Created At')->dateTime(),
+        ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Group Permissions
-    |--------------------------------------------------------------------------
-    | Groups permissions by their category (prefix before the dot).
-    */
-    private function groupPermissions()
+    protected function getTableActions(): array
     {
-        $this->groupedPermissions = collect($this->permissions)->groupBy(function ($permission) {
-            return explode('.', $permission['name'])[0];
-        })->toArray();
+        return [
+            EditAction::make(),
+            DeleteAction::make(),
+        ];
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Edit Role
-    |--------------------------------------------------------------------------
-    | Loads role details for editing, including assigned permissions.
-    */
-    public function editRole($id)
+    protected function getTableBulkActions(): array
     {
-        $role = Role::findOrFail($id);
-        $this->roleId = $role->id;
-        $this->roleName = $role->name;
-        $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
-        $this->isEditing = true;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Update Role
-    |--------------------------------------------------------------------------
-    | Validates and updates an existing role with new details and permissions.
-    */
-    public function updateRole()
-    {
-        $roleName = $this->roleName;
-
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $roleName)) {
-            return Utils::notify(
-                'Invalid Role Name',
-                "Role name can only contain letters (a-z, A-Z), numbers (0-9), and underscores (_).",
-                'danger'
-            );
-        }
-
-        if (Role::where('name', $roleName)->where('id', '!=', $this->roleId)->exists()) {
-            return Utils::notify(
-                'Role Already Exists',
-                "Role '{$roleName}' already exists! Please choose another name.",
-                'danger'
-            );
-        }
-
-        if (empty($this->selectedPermissions)) {
-            return Utils::notify(
-                'No Permissions Selected',
-                'You must select at least one permission to create a role.',
-                'warning'
-            );
-        }
-
-        $this->validate([
-            'roleName' => 'required|string|max:255',
-            'selectedPermissions' => 'required|array|min:1',
-        ]);
-
-        $role = Role::findOrFail($this->roleId);
-        $role->update(['name' => $roleName]);
-        $role->syncPermissions($this->selectedPermissions);
-
-        $this->resetForm();
-        $this->loadRoles();
-
-        return Utils::notify(
-            'Role Updated Successfully',
-            "Role '{$roleName}' has been updated successfully!",
-            'success'
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Delete Role
-    |--------------------------------------------------------------------------
-    | Removes a role from the system and updates the list dynamically.
-    */
-    public function deleteRole($roleId)
-    {
-        $role = Role::findOrFail($roleId);
-        $roleName = $role->name;
-        $role->delete();
-
-        $this->roles = array_filter($this->roles, function ($role) use ($roleId) {
-            return $role['id'] !== $roleId;
-        });
-
-        Utils::notify(
-            'Role Deleted',
-            "Role '{$roleName}' has been deleted successfully!"
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reset Form
-    |--------------------------------------------------------------------------
-    | Clears form inputs and resets the state after adding/updating a role.
-    */
-    private function resetForm()
-    {
-        $this->roleId = null;
-        $this->roleName = '';
-        $this->selectedPermissions = [];
-        $this->isEditing = false;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cancel Edit
-    |--------------------------------------------------------------------------
-    | Cancels the edit state and resets the form.
-    */
-    public function cancelEdit()
-    {
-        $this->resetForm();
+        return [
+            BulkActionGroup::make([
+                DeleteBulkAction::make(),
+            ]),
+        ];
     }
 }

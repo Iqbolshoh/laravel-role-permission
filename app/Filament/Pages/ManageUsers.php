@@ -3,90 +3,59 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\DeleteBulkAction;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
-class ManageUsers extends Page
+class ManageUsers extends Page implements HasTable
 {
+    use InteractsWithTable; 
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static string $view = 'filament.pages.manage-users';
     protected static ?string $navigationGroup = 'Users';
-    protected static ?int $navigationSort = 4;
-
-    public $isOpen = false;
-    public $isEditMode = false;
-    public $name;
-    public $email;
-    public $password;
-    public $password_confirmation;
-    public $role;
-    public $roles;
-
-    public function mount(): void
-    {
-        $this->roles = Role::whereNot('name', 'superadmin')->pluck('name', 'name')->toArray();
-    }
+    protected static ?int $navigationSort = 2;
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('user.view');
+        return auth()->user()?->can('user.manage');
     }
 
-    public function table(Table $table): Table
+    protected function getTableQuery()
     {
-        return $table
-            ->query(User::query()->whereNot('id', auth()->id()))
-            ->columns([
-                TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('email')->sortable()->searchable(),
-                TextColumn::make('roles.name')->label('Role')->sortable(),
-            ])
-            ->actions([
-                EditAction::make()->action(fn($record) => $this->edit($record)),
-                DeleteAction::make(),
-            ]);
+        return User::query();
     }
 
-    public function edit($record): void
+    protected function getTableColumns(): array
     {
-        $this->isEditMode = true;
-        $this->isOpen = true;
-        $this->name = $record->name;
-        $this->email = $record->email;
-        $this->role = $record->roles->first()->name ?? '';
-    }
-
-    public function save(): void
-    {
-        $data = $this->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . ($this->isEditMode ? $this->email : null),
-            'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|string|exists:roles,name',
-        ]);
-
-        $userData = [
-            'name' => $data['name'],
-            'email' => $data['email'],
+        return [
+            TextColumn::make('id')->label('ID')->sortable(),
+            TextColumn::make('name')->label('Name')->searchable(),
+            TextColumn::make('email')->label('Email')->searchable(),
+            TextColumn::make('created_at')->label('Created At')->dateTime(),
         ];
+    }
 
-        if (!empty($data['password'])) {
-            $userData['password'] = Hash::make($data['password']);
-        }
+    protected function getTableActions(): array
+    {
+        return [
+            EditAction::make(),
+            DeleteAction::make(),
+        ];
+    }
 
-        $user = User::updateOrCreate(
-            ['email' => $data['email']],
-            $userData
-        );
-        $user->syncRoles([$data['role']]);
-
-        $this->reset(['name', 'email', 'password', 'password_confirmation', 'role', 'isOpen', 'isEditMode']);
-        $this->notify('success', "User '{$user->name}' saved successfully!");
+    protected function getTableBulkActions(): array
+    {
+        return [
+            BulkActionGroup::make([
+                DeleteBulkAction::make(),
+            ]),
+        ];
     }
 }
