@@ -7,6 +7,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Section;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Helpers\Utils;
@@ -31,21 +32,46 @@ class CreateRole extends Page
 
     public function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                TextInput::make('roleName')
-                    ->label('Role Name')
-                    ->required()
-                    ->regex('/^[a-zA-Z0-9_]+$/')
-                    ->maxLength(255)
-                    ->placeholder('Enter role name'),
+        $permissions = Permission::all()->pluck('name', 'name')->toArray();
 
-                CheckboxList::make('permissions')
-                    ->label('Permissions')
-                    ->options(Permission::all()->pluck('name', 'name'))
-                    ->columns(2)
-                    ->default([]),
-            ])
+        $groupedPermissions = [];
+        foreach ($permissions as $permission) {
+            [$group, $action] = explode('.', $permission, 2);
+            $groupedPermissions[$group][] = $permission;
+        }
+
+        $schema = [
+            Section::make('Role Details')
+                ->description('Enter the role name and assign permissions below.')
+                ->schema([
+                    TextInput::make('roleName')
+                        ->label('Role Name')
+                        ->required()
+                        ->regex('/^[a-zA-Z0-9_]+$/')
+                        ->maxLength(255)
+                        ->placeholder('e.g., admin_role')
+                        ->extraAttributes(['class' => 'w-full']),
+                ])
+                ->collapsible()
+                ->compact(),
+        ];
+
+        foreach ($groupedPermissions as $group => $perms) {
+            $schema[] = Section::make(ucfirst($group) . ' Permissions')
+                ->schema([
+                    CheckboxList::make('permissions')
+                        ->label('')
+                        ->options(array_combine($perms, array_map(fn($perm) => ucfirst(explode('.', $perm)[1]), $perms)))
+                        ->columns(count($perms))
+                        ->default([])
+                        ->extraAttributes(['class' => 'gap-4']),
+                ])
+                ->collapsible()
+                ->compact();
+        }
+
+        return $form
+            ->schema($schema)
             ->statePath('formData');
     }
 
@@ -97,7 +123,7 @@ class CreateRole extends Page
                 ->submit('save')
                 ->color('primary')
                 ->extraAttributes([
-                    'class' => 'px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring focus:ring-indigo-200 focus:ring-opacity-50',
+                    'class' => 'px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition ease-in-out duration-200',
                 ]),
         ];
     }
