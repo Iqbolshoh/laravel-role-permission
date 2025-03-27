@@ -2,17 +2,24 @@
 
 namespace App\Filament\Pages;
 
-use App\Helpers\Utils;
 use Filament\Pages\Page;
 use Filament\Forms\Form;
-use Filament\Forms\Components\{TextInput, Select};
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Section;
+use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+use App\Helpers\Utils;
 
-class CreateUser extends Page
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+
+class CreateUser extends Page implements HasForms
 {
+    use InteractsWithForms;
+
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
     protected static string $view = 'filament.pages.create-user';
     protected static ?string $navigationGroup = 'Users';
@@ -21,48 +28,52 @@ class CreateUser extends Page
     public string $name = '';
     public string $email = '';
     public string $password = '';
-    public string $password_confirmation = ''; // Confirm Password
-    public string $role = '';
+    public string $password_confirmation = '';
+    public ?string $role = null; // Bitta role tanlash uchun string sifatida saqlanadi
 
     public static function canAccess(): bool
     {
         return auth()->user()?->can('user.create');
     }
 
-    public function form(Form $form): Form
+    public function getFormSchema(): array
     {
-        return $form
-            ->schema([
-                TextInput::make('name')
-                    ->label('Full Name')
-                    ->required()
-                    ->maxLength(255),
+        return [
+            Section::make('User Information')
+                ->schema([
+                    TextInput::make('name')
+                        ->label('Full Name')
+                        ->required()
+                        ->maxLength(255),
 
-                TextInput::make('email')
-                    ->label('Email Address')
-                    ->email()
-                    ->unique('users', 'email')
-                    ->required()
-                    ->maxLength(255),
+                    TextInput::make('email')
+                        ->label('Email Address')
+                        ->email()
+                        ->unique('users', 'email')
+                        ->required()
+                        ->maxLength(255),
 
-                TextInput::make('password')
-                    ->label('Password')
-                    ->password()
-                    ->required()
-                    ->minLength(8),
+                    TextInput::make('password')
+                        ->label('Password')
+                        ->password()
+                        ->required()
+                        ->minLength(8),
 
-                TextInput::make('password_confirmation') // Confirm Password
-                    ->label('Confirm Password')
-                    ->password()
-                    ->required()
-                    ->same('password'),
+                    TextInput::make('password_confirmation')
+                        ->label('Confirm Password')
+                        ->password()
+                        ->required()
+                        ->same('password'),
+                ]),
 
-                Select::make('role')
-                    ->label('User Role')
-                    ->options(Role::pluck('name', 'name')->toArray())
-                    ->required(),
-            ])
-            ->statePath('data');
+            Section::make('Role')
+                ->schema([
+                    Select::make('role')
+                        ->label('Select Role')
+                        ->options(Role::pluck('name', 'name')->toArray())
+                        ->required(),
+                ]),
+        ];
     }
 
     public function create()
@@ -77,7 +88,7 @@ class CreateUser extends Page
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|string|exists:roles,name',
+            'role' => 'required|exists:roles,name',
         ]);
 
         if ($validator->fails()) {
@@ -108,7 +119,7 @@ class CreateUser extends Page
             'password' => Hash::make($this->password),
         ]);
 
-        $user->assignRole($this->role);
+        $user->syncRoles([$this->role]);
 
         Utils::notify(
             'Success',

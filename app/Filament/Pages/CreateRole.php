@@ -71,9 +71,10 @@ class CreateRole extends Page
         ];
 
         foreach ($permissions as $group => $perms) {
-            $schema[] = Section::make(ucfirst($group) . ' Permissions')
+            $schema[] = Section::make(ucfirst($group))
                 ->schema([
                     CheckboxList::make('permissions')
+                        ->label('')
                         ->options($perms)
                         ->columns(min(4, count($perms)))
                         ->bulkToggleable()
@@ -82,6 +83,8 @@ class CreateRole extends Page
                             "select_all_{$group}",
                             count(array_intersect($state ?? [], array_keys($perms))) === count($perms)
                         )),
+
+
                 ])
                 ->collapsible()
                 ->compact();
