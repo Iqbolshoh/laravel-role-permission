@@ -50,24 +50,17 @@ class CreateRole extends Page
             ->all();
 
         $schema = [
-            Section::make('Role Details')
-                ->description('Enter the role name and assign permissions.')
-                ->schema([
-                    TextInput::make('roleName')
-                        ->label('Role Name')
-                        ->required()
-                        ->regex('/^[a-zA-Z0-9_]+$/')
-                        ->maxLength(255)
-                        ->placeholder('e.g., admin_role')
-                        ->unique(Role::class, 'name')
-                        ->validationMessages([
-                            'unique' => 'This role name already exists.',
-                            'regex' => 'Only letters, numbers, and underscores allowed.',
-                        ])
-                        ->columnSpanFull(),
+            TextInput::make('roleName')
+                ->label('Role Name')
+                ->required()
+                ->regex('/^[a-zA-Z0-9_]+$/')
+                ->maxLength(255)
+                ->placeholder('e.g., user_role')
+                ->unique(Role::class, 'name')
+                ->validationMessages([
+                    'unique' => 'This role name already exists.',
+                    'regex' => 'Only letters (A-Z) (a-z), numbers (0-9), and underscores (_) allowed.'
                 ])
-                ->collapsible()
-                ->compact(),
         ];
 
         foreach ($permissions as $group => $perms) {
