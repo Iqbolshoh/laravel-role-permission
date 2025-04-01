@@ -19,6 +19,7 @@ use Filament\Forms\Contracts\HasForms;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use App\Helpers\Utils; // Assuming this is where Utils is defined
 
 class ManageUsers extends Page implements HasTable, HasForms
 {
@@ -36,9 +37,22 @@ class ManageUsers extends Page implements HasTable, HasForms
     public $password_confirmation = '';
     public $role = '';
 
+    // Page access control (user.view)
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('user.manage');
+        return auth()->user()?->can('user.view');
+    }
+
+    // Check if user can edit a user record (user.edit)
+    public function canEdit(User $record): bool
+    {
+        return auth()->check() && auth()->user()->can('user.edit');
+    }
+
+    // Check if user can delete a user record (user.delete)
+    public function canDelete(User $record): bool
+    {
+        return auth()->check() && auth()->user()->can('user.delete');
     }
 
     protected function getTableQuery()
@@ -57,25 +71,43 @@ class ManageUsers extends Page implements HasTable, HasForms
     }
 
     protected function getTableActions(): array
-{
-    return [
-        EditAction::make()
-            ->form($this->getFormSchema())
-            ->mutateRecordDataUsing(function (array $data, User $record): array {
-                $data['role'] = $record->roles->first()?->name;
-                return $data;
-            }),
-        DeleteAction::make(),
-    ];
-}
+    {
+        return [
+            EditAction::make()
+                ->visible(fn(User $record) => $this->canEdit($record))
+                ->form($this->getFormSchema())
+                ->mutateRecordDataUsing(function (array $data, User $record): array {
+                    $data['role'] = $record->roles->first()?->name;
+                    return $data;
+                })
+                ->action(function (User $record, array $data): void {
+                    $record->update([
+                        'name' => $data['name'],
+                        'email' => $data['email'],
+                        'password' => isset($data['password']) ? Hash::make($data['password']) : $record->password,
+                    ]);
+                    $record->syncRoles($data['role']);
+                    Utils::notify('Success', 'User updated successfully!', 'success');
+                }),
+
+            DeleteAction::make()
+                ->visible(fn(User $record) => $this->canDelete($record)),
+        ];
+    }
 
     protected function getTableBulkActions(): array
     {
-        return [
-            BulkActionGroup::make([
-                DeleteBulkAction::make(),
-            ]),
-        ];
+        $bulkActions = [];
+
+        // Only show bulk delete if user has user.delete permission
+        if ($this->canDelete(new User())) { // Using a new User instance as a placeholder
+            $bulkActions[] = BulkActionGroup::make([
+                DeleteBulkAction::make()
+                    ->visible(fn() => $this->canDelete(new User())),
+            ]);
+        }
+
+        return $bulkActions;
     }
 
     protected function getFormSchema(): array
@@ -89,21 +121,23 @@ class ManageUsers extends Page implements HasTable, HasForms
             TextInput::make('email')
                 ->label('Email Address')
                 ->email()
-                ->unique('users', 'email')
+                ->unique('users', 'email', ignorable: fn(?User $record) => $record)
                 ->required()
                 ->maxLength(255),
 
             TextInput::make('password')
                 ->label('Password')
                 ->password()
-                ->required()
-                ->minLength(8),
+                ->minLength(8)
+                ->required(fn(string $context): bool => $context === 'create')
+                ->dehydrated(fn(?string $state): bool => filled($state)),
 
             TextInput::make('password_confirmation')
                 ->label('Confirm Password')
                 ->password()
-                ->required()
-                ->same('password'),
+                ->required(fn(string $context): bool => $context === 'create')
+                ->same('password')
+                ->dehydrated(fn(?string $state): bool => filled($state)),
 
             Select::make('role')
                 ->label('Select Role')
@@ -116,15 +150,16 @@ class ManageUsers extends Page implements HasTable, HasForms
     {
         $validatedData = $this->form->getState();
 
-        User::create([
+        $user = User::create([
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']),
-            'role' => $validatedData['role'],
         ]);
 
+        $user->assignRole($validatedData['role']);
+
         $this->reset(['name', 'email', 'password', 'password_confirmation', 'role']);
-        $this->notify('success', 'User created successfully!');
+        Utils::notify('Success', 'User created successfully!', 'success');
     }
 
     protected function getForms(): array

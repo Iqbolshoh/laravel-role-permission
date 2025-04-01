@@ -28,16 +28,19 @@ class ManageRoles extends Page implements HasTable
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 2;
 
+    // Page access control (role.view)
     public static function canAccess(): bool
     {
         return auth()->check() && auth()->user()->can('role.view');
     }
 
+    // Check if user can edit a role (role.edit)
     public function canEdit(Role $record): bool
     {
         return auth()->check() && auth()->user()->can('role.edit');
     }
 
+    // Check if user can delete a role (role.delete)
     public function canDelete(Role $record): bool
     {
         return auth()->check() && auth()->user()->can('role.delete');
@@ -45,7 +48,7 @@ class ManageRoles extends Page implements HasTable
 
     protected function getTableQuery()
     {
-        return Role::query()->with('permissions'); // Ruxsatlarni oldindan yuklash
+        return Role::query()->with('permissions'); // Preload permissions
     }
 
     protected function getTableColumns(): array
@@ -56,8 +59,8 @@ class ManageRoles extends Page implements HasTable
             TextColumn::make('permissions')
                 ->label('Permissions')
                 ->getStateUsing(fn(Role $record) => $record->permissions->pluck('name')->implode(', '))
-                ->wrap() // Uzun matnni o'rash
-                ->searchable(), // Ruxsatlar bo'yicha qidiruv qilish imkoniyati
+                ->wrap()
+                ->searchable(),
             TextColumn::make('created_at')->label('Created At')->dateTime(),
         ];
     }
@@ -92,14 +95,20 @@ class ManageRoles extends Page implements HasTable
 
     protected function getTableBulkActions(): array
     {
-        return [
-            BulkActionGroup::make([
-                DeleteBulkAction::make(),
-            ]),
-        ];
+        $bulkActions = [];
+
+        // Only show bulk delete if user has role.delete permission
+        if ($this->canDelete(new Role())) { // Using a new Role instance as a placeholder
+            $bulkActions[] = BulkActionGroup::make([
+                DeleteBulkAction::make()
+                    ->visible(fn() => $this->canDelete(new Role())),
+            ]);
+        }
+
+        return $bulkActions;
     }
 
-    // Tahrirlash uchun forma sxemasi
+    // Edit form schema
     protected function getEditForm(Form $form, Role $record): Form
     {
         $permissions = Permission::all()
