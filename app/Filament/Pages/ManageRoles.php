@@ -33,6 +33,16 @@ class ManageRoles extends Page implements HasTable
         return auth()->check() && auth()->user()->can('role.view');
     }
 
+    public function canEdit(Role $record): bool
+    {
+        return auth()->check() && auth()->user()->can('role.edit');
+    }
+
+    public function canDelete(Role $record): bool
+    {
+        return auth()->check() && auth()->user()->can('role.delete');
+    }
+
     protected function getTableQuery()
     {
         return Role::query()->with('permissions'); // Ruxsatlarni oldindan yuklash
@@ -56,6 +66,7 @@ class ManageRoles extends Page implements HasTable
     {
         return [
             EditAction::make()
+                ->visible(fn(Role $record) => $this->canEdit($record))
                 ->form(fn(Form $form, $record) => $this->getEditForm($form, $record))
                 ->fillForm(function (Role $record): array {
                     return [
@@ -73,7 +84,9 @@ class ManageRoles extends Page implements HasTable
                     }
                 })
                 ->requiresConfirmation(),
-            DeleteAction::make(),
+
+            DeleteAction::make()
+                ->visible(fn(Role $record) => $this->canDelete($record)),
         ];
     }
 
