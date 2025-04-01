@@ -10,23 +10,32 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        /*
+        |-------------------------------------------------------------------------- 
+        | Define user data
+        |-------------------------------------------------------------------------- 
+        | This section defines all necessary users for the system
+        */
         $users = [
-            [
-                'name' => 'Super Admin',
-                'email' => 'admin@iqbolshoh.uz',
-                'password' => Hash::make('IQBOLSHOH')
-            ],
-            [
-                'name' => 'User',
-                'email' => 'user@iqbolshoh.uz',
-                'password' => Hash::make('IQBOLSHOH')
-            ],
+            ['name' => 'Super Admin', 'email' => 'admin@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')],
+            ['name' => 'User', 'email' => 'user@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')],
+            ['name' => 'Manager', 'email' => 'manager@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')],
         ];
 
-        foreach ($users as $data) {
-            User::create($data);
-        }
+        /*
+        |-------------------------------------------------------------------------- 
+        | Create users
+        |-------------------------------------------------------------------------- 
+        | This section creates all necessary users for the system
+        */
+        collect($users)->each(fn($user) => User::create($user));
 
-        $this->command->info('Users table seeded with Admin and User!');
+        /*
+        |-------------------------------------------------------------------------- 
+        | Display success message
+        |-------------------------------------------------------------------------- 
+        | This section displays a confirmation message
+        */
+        $this->command->info('Users seeded: Admin & User!');
     }
 }
