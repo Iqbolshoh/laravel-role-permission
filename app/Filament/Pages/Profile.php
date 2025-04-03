@@ -118,6 +118,12 @@ class Profile extends Page implements HasForms
             return;
         }
 
+        $this->validate([
+            'data.name' => 'required|max:255',
+            'data.email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
+            'data.password' => 'nullable|min:8|confirmed',
+        ]);
+
         $data = $this->form->getState();
 
         $updateData = [
