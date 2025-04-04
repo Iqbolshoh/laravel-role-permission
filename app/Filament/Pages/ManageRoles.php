@@ -11,6 +11,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Pages\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
@@ -28,19 +29,21 @@ class ManageRoles extends Page implements HasTable
     protected static ?string $navigationGroup = 'Roles';
     protected static ?int $navigationSort = 3;
 
-    // Page access control (role.view)
     public static function canAccess(): bool
     {
         return auth()->check() && auth()->user()->can('role.view');
     }
 
-    // Check if user can edit a role (role.edit)
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->can('role.create');
+    }
+
     public function canEdit(Role $role): bool
     {
         return auth()->check() && auth()->user()->can('role.edit');
     }
 
-    // Check if user can delete a role (role.delete)
     public function canDelete(Role $role): bool
     {
         return auth()->check() && auth()->user()->can('role.delete');
@@ -65,56 +68,7 @@ class ManageRoles extends Page implements HasTable
         ];
     }
 
-    protected function getTableActions(): array
-    {
-        return [
-            EditAction::make()
-                ->visible(fn(Role $role) => $this->canEdit($role))
-                ->form(function (Form $form) {
-                    return $this->getEditForm($form);
-                })
-                ->fillForm(fn(Role $role): array => [
-                    'roleName' => $role->name,
-                    'permissions' => $role->permissions->pluck('name')->toArray(),
-                ])
-                ->action(function (Role $role, array $data): void {
-                    if (empty($data['permissions'])) {
-                        Utils::notify('No Permissions', 'Select at least one permission.', 'warning');
-                        // Formani yopmaslik uchun, bu joyda faqat xabarni ko'rsatamiz
-                        return; // Bu yerda hech qanday boshqa amal qilmaymiz, formani yopilmaydi
-                    }
-
-                    try {
-                        $role->update(['name' => $data['roleName']]);
-                        $role->syncPermissions($data['permissions']);
-                        Utils::notify('Success', "Role '{$role->name}' updated!", 'success');
-                    } catch (\Exception $e) {
-                        Utils::notify('Error', 'Update failed: ' . $e->getMessage(), 'danger');
-                    }
-                })
-                ->requiresConfirmation(),
-
-            DeleteAction::make()
-                ->visible(fn(Role $role) => $this->canDelete($role)),
-        ];
-    }
-
-    protected function getTableBulkActions(): array
-    {
-        $bulkActions = [];
-
-        if ($this->canDelete(new Role())) {
-            $bulkActions[] = BulkActionGroup::make([
-                DeleteBulkAction::make()
-                    ->visible(fn() => $this->canDelete(new Role())),
-            ]);
-        }
-
-        return $bulkActions;
-    }
-
-    // Edit form schema
-    protected function getEditForm(Form $form): Form
+    protected function getFormSchema(): array
     {
         $permissions = Permission::all()
             ->pluck('name')
@@ -132,23 +86,91 @@ class ManageRoles extends Page implements HasTable
                 ->unique(Role::class, 'name', ignoreRecord: true)
                 ->validationMessages([
                     'unique' => 'This role name already exists.',
-                    'regex' => 'Only letters (A-Z) (a-z), numbers (0-9), and underscores (_) allowed.',
+                    'regex' => 'Only letters (A-Z), numbers (0-9), and underscores (_) allowed.',
                 ]),
         ];
 
         foreach ($permissions as $group => $perms) {
             $schema[] = Section::make(ucfirst($group))
                 ->schema([
-                    CheckboxList::make('permissions')
-                        ->label('')
-                        ->options($perms)
-                        ->columns(min(4, count($perms)))
-                        ->bulkToggleable(),
+                    CheckboxList::make('permissions')->options($perms)->columns(min(4, count($perms)))->bulkToggleable()
                 ])
                 ->collapsible()
                 ->compact();
         }
 
-        return $form->schema($schema);
+        return $schema;
+    }
+
+    protected function getTableActions(): array
+    {
+        return [
+            EditAction::make()
+                ->visible(fn(Role $role) => $this->canEdit($role))
+                ->form(fn(Form $form) => $form->schema($this->getFormSchema()))
+                ->fillForm(fn(Role $role): array => [
+                    'roleName' => $role->name,
+                    'permissions' => $role->permissions->pluck('name')->toArray(),
+                ])
+                ->action(fn(Role $role, array $data) => $this->updateRole($role, $data))
+                ->color('primary')
+                ->modalHeading('Edit Role')
+                ->modalSubmitActionLabel('Update Role'),
+
+            DeleteAction::make()
+                ->visible(fn(Role $role) => $this->canDelete($role)),
+        ];
+    }
+
+    protected function getTableBulkActions(): array
+    {
+        return $this->canDelete(new Role())
+            ? [BulkActionGroup::make([DeleteBulkAction::make()])]
+            : [];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('create')
+                ->label('Create Role')
+                ->icon('heroicon-o-shield-check')
+                ->form($this->getFormSchema())
+                ->action(fn(array $data) => $this->createRole($data))
+                ->color('primary')
+                ->visible(fn() => auth()->user()?->can('role.create')),
+        ];
+    }
+
+    protected function createRole(array $data): void
+    {
+        if (empty($data['permissions'])) {
+            Utils::notify('No Permissions', 'Select at least one permission.', 'warning');
+            return;
+        }
+
+        try {
+            $role = Role::create(['name' => $data['roleName']]);
+            $role->syncPermissions($data['permissions']);
+            Utils::notify('Success', "Role '{$role->name}' created!", 'success');
+        } catch (\Exception $e) {
+            Utils::notify('Error', 'Creation failed: ' . $e->getMessage(), 'danger');
+        }
+    }
+
+    protected function updateRole(Role $role, array $data): void
+    {
+        if (empty($data['permissions'])) {
+            Utils::notify('No Permissions', 'Select at least one permission.', 'warning');
+            return;
+        }
+
+        try {
+            $role->update(['name' => $data['roleName']]);
+            $role->syncPermissions($data['permissions']);
+            Utils::notify('Success', "Role '{$role->name}' updated!", 'success');
+        } catch (\Exception $e) {
+            Utils::notify('Error', 'Update failed: ' . $e->getMessage(), 'danger');
+        }
     }
 }

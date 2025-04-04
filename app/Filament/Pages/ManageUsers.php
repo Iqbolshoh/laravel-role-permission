@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use App\Helpers\Utils;
+use Illuminate\Support\Facades\Validator;
 
 class ManageUsers extends Page implements HasTable, HasForms
 {
@@ -107,6 +108,7 @@ class ManageUsers extends Page implements HasTable, HasForms
             TextColumn::make('email')->label('Email')->sortable()->searchable(),
             TextColumn::make('roles.name')->label('Role')->sortable()->searchable(),
             TextColumn::make('created_at')->label('Created At')->sortable()->dateTime(),
+            TextColumn::make('updated_at')->label('Updated At')->sortable()->dateTime(),
         ];
     }
 
@@ -213,7 +215,8 @@ class ManageUsers extends Page implements HasTable, HasForms
     {
         return [
             FilamentAction::make('create')
-                ->label('Add User')
+                ->label('Create User')
+                ->icon('heroicon-o-user-plus')
                 ->form($this->getFormSchema())
                 ->action(function (array $data): void {
                     if (!auth()->user()?->can('user.create')) {
@@ -242,7 +245,7 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     public function create()
     {
-        $validatedData = $this->form->getState();
+        $validatedData = $this->validateFormData($this->form->getState());
 
         $user = User::create([
             'name' => $validatedData['name'],
@@ -253,6 +256,7 @@ class ManageUsers extends Page implements HasTable, HasForms
         $user->assignRole($validatedData['role']);
 
         $this->reset(['name', 'email', 'password', 'password_confirmation', 'role']);
+
         Utils::notify('Success', 'User created successfully!', 'success');
     }
 
