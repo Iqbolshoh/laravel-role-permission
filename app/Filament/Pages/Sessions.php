@@ -19,12 +19,16 @@ class Sessions extends Page implements HasForms, HasTable
 {
     use InteractsWithForms, InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static ?string $navigationIcon = 'heroicon-o-device-tablet';
     protected static ?string $navigationLabel = 'Active Sessions';
     protected static ?string $navigationGroup = 'Account';
     protected static ?int $navigationSort = 7;
-
     protected static string $view = 'filament.pages.sessions';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('profile.view');
+    }
 
     public function form(Form $form): Form
     {
@@ -68,10 +72,5 @@ class Sessions extends Page implements HasForms, HasTable
                         \Log::info("Session ID [{$record->id}] deleted.");
                     }),
             ]);
-    }
-
-    public static function canAccess(): bool
-    {
-        return Auth::check();
     }
 }

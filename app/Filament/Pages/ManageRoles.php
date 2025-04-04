@@ -35,20 +35,20 @@ class ManageRoles extends Page implements HasTable
     }
 
     // Check if user can edit a role (role.edit)
-    public function canEdit(Role $record): bool
+    public function canEdit(Role $role): bool
     {
         return auth()->check() && auth()->user()->can('role.edit');
     }
 
     // Check if user can delete a role (role.delete)
-    public function canDelete(Role $record): bool
+    public function canDelete(Role $role): bool
     {
         return auth()->check() && auth()->user()->can('role.delete');
     }
 
     protected function getTableQuery()
     {
-        return Role::query()->with('permissions'); // Preload permissions
+        return Role::query()->with('permissions');
     }
 
     protected function getTableColumns(): array
@@ -58,7 +58,7 @@ class ManageRoles extends Page implements HasTable
             TextColumn::make('name')->label('Role Name')->searchable(),
             TextColumn::make('permissions')
                 ->label('Permissions')
-                ->getStateUsing(fn(Role $record) => $record->permissions->pluck('name')->implode(', '))
+                ->getStateUsing(fn(Role $role) => $role->permissions->pluck('name')->implode(', '))
                 ->wrap()
                 ->searchable(),
             TextColumn::make('created_at')->label('Created At')->dateTime(),
@@ -69,19 +69,25 @@ class ManageRoles extends Page implements HasTable
     {
         return [
             EditAction::make()
-                ->visible(fn(Role $record) => $this->canEdit($record))
-                ->form(fn(Form $form, $record) => $this->getEditForm($form, $record))
-                ->fillForm(function (Role $record): array {
-                    return [
-                        'roleName' => $record->name,
-                        'permissions' => $record->permissions->pluck('name')->toArray(),
-                    ];
+                ->visible(fn(Role $role) => $this->canEdit($role))
+                ->form(function (Form $form) {
+                    return $this->getEditForm($form);
                 })
-                ->action(function (Role $record, array $data): void {
+                ->fillForm(fn(Role $role): array => [
+                    'roleName' => $role->name,
+                    'permissions' => $role->permissions->pluck('name')->toArray(),
+                ])
+                ->action(function (Role $role, array $data): void {
+                    if (empty($data['permissions'])) {
+                        Utils::notify('No Permissions', 'Select at least one permission.', 'warning');
+                        // Formani yopmaslik uchun, bu joyda faqat xabarni ko'rsatamiz
+                        return; // Bu yerda hech qanday boshqa amal qilmaymiz, formani yopilmaydi
+                    }
+
                     try {
-                        $record->update(['name' => $data['roleName']]);
-                        $record->syncPermissions($data['permissions'] ?? []);
-                        Utils::notify('Success', "Role '{$record->name}' updated!", 'success');
+                        $role->update(['name' => $data['roleName']]);
+                        $role->syncPermissions($data['permissions']);
+                        Utils::notify('Success', "Role '{$role->name}' updated!", 'success');
                     } catch (\Exception $e) {
                         Utils::notify('Error', 'Update failed: ' . $e->getMessage(), 'danger');
                     }
@@ -89,7 +95,7 @@ class ManageRoles extends Page implements HasTable
                 ->requiresConfirmation(),
 
             DeleteAction::make()
-                ->visible(fn(Role $record) => $this->canDelete($record)),
+                ->visible(fn(Role $role) => $this->canDelete($role)),
         ];
     }
 
@@ -97,8 +103,7 @@ class ManageRoles extends Page implements HasTable
     {
         $bulkActions = [];
 
-        // Only show bulk delete if user has role.delete permission
-        if ($this->canDelete(new Role())) { // Using a new Role instance as a placeholder
+        if ($this->canDelete(new Role())) {
             $bulkActions[] = BulkActionGroup::make([
                 DeleteBulkAction::make()
                     ->visible(fn() => $this->canDelete(new Role())),
@@ -109,7 +114,7 @@ class ManageRoles extends Page implements HasTable
     }
 
     // Edit form schema
-    protected function getEditForm(Form $form, Role $record): Form
+    protected function getEditForm(Form $form): Form
     {
         $permissions = Permission::all()
             ->pluck('name')
@@ -123,10 +128,11 @@ class ManageRoles extends Page implements HasTable
                 ->required()
                 ->regex('/^[a-zA-Z0-9_]+$/')
                 ->maxLength(255)
-                ->unique(Role::class, 'name', $record)
+                ->placeholder('e.g., user_role')
+                ->unique(Role::class, 'name', ignoreRecord: true)
                 ->validationMessages([
                     'unique' => 'This role name already exists.',
-                    'regex' => 'Only letters (A-Z) (a-z), numbers (0-9), and underscores (_) allowed.'
+                    'regex' => 'Only letters (A-Z) (a-z), numbers (0-9), and underscores (_) allowed.',
                 ]),
         ];
 

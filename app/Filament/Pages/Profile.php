@@ -18,7 +18,7 @@ class Profile extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
     protected static string $view = 'filament.pages.profile';
     protected static ?string $navigationLabel = 'My Profile';
     protected static ?string $navigationGroup = 'Account';
@@ -28,17 +28,17 @@ class Profile extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return Auth::check() && (Auth::user()->can('profile.view') ?? false);
+        return auth()->user()?->can('profile.view');
     }
 
     public function canEdit(): bool
     {
-        return Auth::check() && Auth::user()->can('profile.edit');
+        return auth()->user()?->can('profile.edit');
     }
 
     public function canDelete(): bool
     {
-        return Auth::check() && Auth::user()->can('profile.delete');
+        return auth()->user()?->can('profile.delete');
     }
 
     public function form(Form $form): Form

@@ -70,12 +70,7 @@ class CreateRole extends Page
                         ->label('')
                         ->options($perms)
                         ->columns(min(4, count($perms)))
-                        ->bulkToggleable()
-                        ->reactive()
-                        ->afterStateUpdated(fn($state, callable $set) => $set(
-                            "select_all_{$group}",
-                            count(array_intersect($state ?? [], array_keys($perms))) === count($perms)
-                        )),
+                        ->bulkToggleable(),
                 ])
                 ->collapsible()
                 ->compact();
