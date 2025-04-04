@@ -112,10 +112,16 @@ class Profile extends Page implements HasForms
                                 ->label('Delete Profile')
                                 ->color('danger')
                                 ->requiresConfirmation()
-                                ->modalHeading('Are you sure?')
-                                ->modalDescription('This action will permanently delete your profile.')
-                                ->modalSubmitActionLabel('Yes, delete it')
-                                ->action('delete')
+                                ->modalHeading('Confirm Profile Deletion')
+                                ->modalSubmitActionLabel('Delete Profile')
+                                ->modalWidth('md')
+                                ->form([
+                                    TextInput::make('delete_password')
+                                        ->label('Enter your password to confirm')
+                                        ->required()
+                                        ->autocomplete('current-password'),
+                                ])
+                                ->action(fn($data) => $this->delete($data))
                                 ->visible(fn() => $this->canDelete()),
                         ])->fullWidth(),
                     ])
@@ -177,15 +183,21 @@ class Profile extends Page implements HasForms
     }
 
     /*
-    |----------------------------------------------------------------------
+    |---------------------------------------------------------------------- 
     | Delete Profile
-    |----------------------------------------------------------------------
-    | Deletes the authenticated user's profile and logs them out.
+    |---------------------------------------------------------------------- 
+    | Validates the entered password and deletes the user's profile if correct. 
+    | Logs the user out after deletion and redirects to the login page.
     */
-    public function delete(): void
+    public function delete($data): void
     {
         if (!$this->canDelete()) {
             Utils::notify('Permission Denied', 'You do not have permission to delete your profile.', 'danger');
+            return;
+        }
+
+        if (!Hash::check($data['delete_password'], Auth::user()->password)) {
+            Utils::notify('Error', 'The password you entered is incorrect.', 'danger');
             return;
         }
 
@@ -199,10 +211,10 @@ class Profile extends Page implements HasForms
     }
 
     /*
-    |----------------------------------------------------------------------
-    | Form Registration
-    |----------------------------------------------------------------------
-    | Registers the form instance for use within the page.
+    |---------------------------------------------------------------------- 
+    | Form Initialization
+    |---------------------------------------------------------------------- 
+    | Initializes the form with the user's data for profile update.
     */
     protected function getForms(): array
     {
