@@ -22,7 +22,7 @@ class Sessions extends Page implements HasForms, HasTable
     protected static ?string $navigationIcon = 'heroicon-o-clock';
     protected static ?string $navigationLabel = 'Active Sessions';
     protected static ?string $navigationGroup = 'Account';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 7;
 
     protected static string $view = 'filament.pages.sessions';
 

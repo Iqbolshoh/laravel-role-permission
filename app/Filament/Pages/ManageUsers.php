@@ -29,7 +29,7 @@ class ManageUsers extends Page implements HasTable, HasForms
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static string $view = 'filament.pages.manage-users';
     protected static ?string $navigationGroup = 'Users';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
 
     public $name = '';
     public $email = '';

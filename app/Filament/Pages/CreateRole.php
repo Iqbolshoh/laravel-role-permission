@@ -17,7 +17,7 @@ class CreateRole extends Page
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
     protected static string $view = 'filament.pages.create-role';
     protected static ?string $navigationGroup = 'Roles';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public array $formData = [
         'roleName' => '',
