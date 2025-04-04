@@ -16,10 +16,11 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Actions\Action as FilamentAction;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
-use App\Helpers\Utils; // Assuming this is where Utils is defined
+use App\Helpers\Utils;
 
 class ManageUsers extends Page implements HasTable, HasForms
 {
@@ -37,39 +38,84 @@ class ManageUsers extends Page implements HasTable, HasForms
     public $password_confirmation = '';
     public $role = '';
 
-    // Page access control (user.view)
+    /*
+    |----------------------------------------------------------------------
+    | Access Control
+    |----------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page.
+    */
     public static function canAccess(): bool
     {
         return auth()->user()?->can('user.view');
     }
 
-    // Check if user can edit a user record (user.edit)
+    /*
+    |----------------------------------------------------------------------
+    | Crete Permission Check
+    |----------------------------------------------------------------------
+    | Checks if the authenticated user has permission to create a user record.
+    */
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('user.create');
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | Edit Permission Check
+    |----------------------------------------------------------------------
+    | Checks if the authenticated user has permission to edit a user record.
+    */
     public function canEdit(User $record): bool
     {
         return auth()->check() && auth()->user()->can('user.edit');
     }
 
-    // Check if user can delete a user record (user.delete)
+    /*
+    |----------------------------------------------------------------------
+    | Delete Permission Check
+    |----------------------------------------------------------------------
+    | Checks if the authenticated user has permission to delete a user record.
+    */
     public function canDelete(User $record): bool
     {
         return auth()->check() && auth()->user()->can('user.delete');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Table Query Definition
+    |----------------------------------------------------------------------
+    | Retrieves the base query for the users table.
+    */
     protected function getTableQuery()
     {
         return User::query();
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Table Columns Definition
+    |----------------------------------------------------------------------
+    | Defines the columns to be displayed in the users table.
+    */
     protected function getTableColumns(): array
     {
         return [
             TextColumn::make('id')->label('ID')->sortable(),
-            TextColumn::make('name')->label('Name')->searchable(),
-            TextColumn::make('email')->label('Email')->searchable(),
-            TextColumn::make('created_at')->label('Created At')->dateTime(),
+            TextColumn::make('name')->label('Name')->sortable()->searchable(),
+            TextColumn::make('email')->label('Email')->sortable()->searchable(),
+            TextColumn::make('roles.name')->label('Role')->sortable()->searchable(),
+            TextColumn::make('created_at')->label('Created At')->sortable()->dateTime(),
         ];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Table Actions Definition
+    |----------------------------------------------------------------------
+    | Defines the actions available for each user record in the table.
+    */
     protected function getTableActions(): array
     {
         return [
@@ -95,12 +141,17 @@ class ManageUsers extends Page implements HasTable, HasForms
         ];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Table Bulk Actions Definition
+    |----------------------------------------------------------------------
+    | Defines the bulk actions available for selected user records.
+    */
     protected function getTableBulkActions(): array
     {
         $bulkActions = [];
 
-        // Only show bulk delete if user has user.delete permission
-        if ($this->canDelete(new User())) { // Using a new User instance as a placeholder
+        if ($this->canDelete(new User())) {
             $bulkActions[] = BulkActionGroup::make([
                 DeleteBulkAction::make()
                     ->visible(fn() => $this->canDelete(new User())),
@@ -110,6 +161,12 @@ class ManageUsers extends Page implements HasTable, HasForms
         return $bulkActions;
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Form Schema Definition
+    |----------------------------------------------------------------------
+    | Defines the structure and fields of the user creation/edit form.
+    */
     protected function getFormSchema(): array
     {
         return [
@@ -146,6 +203,43 @@ class ManageUsers extends Page implements HasTable, HasForms
         ];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Header Actions Definition
+    |----------------------------------------------------------------------
+    | Defines actions in the page header, including the create user form trigger.
+    */
+    protected function getHeaderActions(): array
+    {
+        return [
+            FilamentAction::make('create')
+                ->label('Add User')
+                ->form($this->getFormSchema())
+                ->action(function (array $data): void {
+                    if (!auth()->user()?->can('user.create')) {
+                        Utils::notify('Error', 'You do not have permission to create a user.', 'error');
+                        return;
+                    }
+                    $user = User::create([
+                        'name' => $data['name'],
+                        'email' => $data['email'],
+                        'password' => Hash::make($data['password']),
+                    ]);
+
+                    $user->assignRole($data['role']);
+                    Utils::notify('Success', 'User created successfully!', 'success');
+                })
+                ->color('primary')
+                ->visible(fn() => auth()->user()?->can('user.create')),
+        ];
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | Create New User
+    |----------------------------------------------------------------------
+    | Creates a new user with the provided data and assigns a role.
+    */
     public function create()
     {
         $validatedData = $this->form->getState();
@@ -162,6 +256,12 @@ class ManageUsers extends Page implements HasTable, HasForms
         Utils::notify('Success', 'User created successfully!', 'success');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Form Registration
+    |----------------------------------------------------------------------
+    | Registers the form instance for use within the page.
+    */
     protected function getForms(): array
     {
         return [
