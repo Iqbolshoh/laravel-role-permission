@@ -26,21 +26,45 @@ class Profile extends Page implements HasForms
 
     public ?array $data = [];
 
+    /*
+    |----------------------------------------------------------------------
+    | Access Control
+    |----------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page.
+    */
     public static function canAccess(): bool
     {
         return auth()->user()?->can('profile.view');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Edit Permission Check
+    |----------------------------------------------------------------------
+    | Checks if the authenticated user has permission to edit their profile.
+    */
     public function canEdit(): bool
     {
         return auth()->user()?->can('profile.edit');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Delete Permission Check
+    |----------------------------------------------------------------------
+    | Checks if the authenticated user has permission to delete their profile.
+    */
     public function canDelete(): bool
     {
         return auth()->user()?->can('profile.delete');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Form Schema Definition
+    |----------------------------------------------------------------------
+    | Defines the structure and fields of the profile editing form.
+    */
     public function form(Form $form): Form
     {
         return $form
@@ -101,6 +125,12 @@ class Profile extends Page implements HasForms
             ->model(Auth::user());
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Page Initialization
+    |----------------------------------------------------------------------
+    | Fills the form with the authenticated user's current data on page load.
+    */
     public function mount(): void
     {
         if (Auth::check()) {
@@ -111,6 +141,12 @@ class Profile extends Page implements HasForms
         }
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Save Profile Changes
+    |----------------------------------------------------------------------
+    | Validates and updates the user's profile data, including password if provided.
+    */
     public function save(): void
     {
         if (!$this->canEdit()) {
@@ -140,6 +176,12 @@ class Profile extends Page implements HasForms
         Utils::notify('Success', 'Your profile has been updated successfully!', 'success');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Delete Profile
+    |----------------------------------------------------------------------
+    | Deletes the authenticated user's profile and logs them out.
+    */
     public function delete(): void
     {
         if (!$this->canDelete()) {
@@ -156,6 +198,12 @@ class Profile extends Page implements HasForms
         $this->redirect('/login');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Form Registration
+    |----------------------------------------------------------------------
+    | Registers the form instance for use within the page.
+    */
     protected function getForms(): array
     {
         return [
