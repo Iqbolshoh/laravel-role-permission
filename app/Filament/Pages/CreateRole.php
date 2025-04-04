@@ -32,7 +32,7 @@ class CreateRole extends Page
     */
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('role.create') ?? false;
+        return auth()->user()?->can('role.create');
     }
 
     /*
