@@ -22,7 +22,7 @@ class Profile extends Page implements HasForms
     protected static string $view = 'filament.pages.profile';
     protected static ?string $navigationLabel = 'My Profile';
     protected static ?string $navigationGroup = 'Account';
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 4;
 
     public ?array $data = [];
 
@@ -150,26 +150,26 @@ class Profile extends Page implements HasForms
     */
     public function save(): void
     {
-        if (!$this->canAccess('edit')) {
-            Utils::notify('Permission Denied', 'You do not have permission to edit your ', 'danger');
-            return;
-        }
-
         $data = $this->form->getState();
-
+    
         $updateData = [
             'name' => $data['name'],
             'email' => $data['email'],
         ];
-
+    
         if (!empty($data['password'])) {
             $updateData['password'] = Hash::make($data['password']);
         }
-
+    
         Auth::user()->update($updateData);
-
+    
+        Auth::logout();
+    
+        $this->redirect('/login');
+    
         Utils::notify('Success', 'Your profile has been updated successfully!', 'success');
     }
+    
 
     /*
     |---------------------------------------------------------------------- 
@@ -180,11 +180,6 @@ class Profile extends Page implements HasForms
     */
     public function delete($data): void
     {
-        if (!$this->canAccess('delete')) {
-            Utils::notify('Permission Denied', 'You do not have permission to delete your ', 'danger');
-            return;
-        }
-
         if (!Hash::check($data['delete_password'], Auth::user()->password)) {
             Utils::notify('Error', 'The password you entered is incorrect.', 'danger');
             return;

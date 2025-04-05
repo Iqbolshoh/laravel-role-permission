@@ -26,27 +26,27 @@ class ManageRoles extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-cog';
     protected static string $view = 'filament.pages.manage-roles';
-    protected static ?string $navigationGroup = 'Roles';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Users & Roles';
+    protected static ?int $navigationSort = 2;
 
-    public static function canAccess(): bool
+    /*
+    |--------------------------------------------------------------------------
+    | Access Control Check
+    |--------------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page
+    */
+    public static function canAccess(string $permission = 'view'): bool
     {
-        return auth()->check() && auth()->user()->can('role.view');
-    }
+        if (!$user = auth()->user())
+            return false;
 
-    public static function canCreate(): bool
-    {
-        return auth()->check() && auth()->user()->can('role.create');
-    }
-
-    public function canEdit(Role $role): bool
-    {
-        return auth()->check() && auth()->user()->can('role.edit');
-    }
-
-    public function canDelete(Role $role): bool
-    {
-        return auth()->check() && auth()->user()->can('role.delete');
+        return match ($permission) {
+            'view' => $user->can('role.view'),
+            'create' => $user->can('role.create'),
+            'edit' => $user->can('role.edit'),
+            'delete' => $user->can('role.delete'),
+            default => false,
+        };
     }
 
     protected function getTableQuery()
@@ -58,13 +58,14 @@ class ManageRoles extends Page implements HasTable
     {
         return [
             TextColumn::make('id')->label('ID')->sortable(),
-            TextColumn::make('name')->label('Role Name')->searchable(),
+            TextColumn::make('name')->label('Role Name')->sortable()->searchable(),
             TextColumn::make('permissions')
                 ->label('Permissions')
                 ->getStateUsing(fn(Role $role) => $role->permissions->pluck('name')->implode(', '))
                 ->wrap()
+                ->sortable()
                 ->searchable(),
-            TextColumn::make('created_at')->label('Created At')->dateTime(),
+            TextColumn::make('created_at')->label('Created At')->sortable()->dateTime(),
         ];
     }
 
@@ -93,12 +94,14 @@ class ManageRoles extends Page implements HasTable
         foreach ($permissions as $group => $perms) {
             $schema[] = Section::make(ucfirst($group))
                 ->schema([
-                    CheckboxList::make('permissions')->options($perms)->columns(min(4, count($perms)))->bulkToggleable()
+                    CheckboxList::make('permissions')
+                        ->options($perms)
+                        ->columns(min(4, count($perms)))
+                        ->bulkToggleable()
                 ])
                 ->collapsible()
                 ->compact();
         }
-
         return $schema;
     }
 
@@ -106,7 +109,7 @@ class ManageRoles extends Page implements HasTable
     {
         return [
             EditAction::make()
-                ->visible(fn(Role $role) => $this->canEdit($role))
+                ->visible(fn(Role $role) => $this->canAccess('edit') && $role->name !== 'superadmin')
                 ->form(fn(Form $form) => $form->schema($this->getFormSchema()))
                 ->fillForm(fn(Role $role): array => [
                     'roleName' => $role->name,
@@ -117,15 +120,47 @@ class ManageRoles extends Page implements HasTable
                 ->modalHeading('Edit Role')
                 ->modalSubmitActionLabel('Update Role'),
 
+
             DeleteAction::make()
-                ->visible(fn(Role $role) => $this->canDelete($role)),
+                ->visible(fn(Role $role) => $this->canAccess('delete') && $role->name !== 'superadmin')
+                ->action(function (Role $role) {
+                    try {
+                        $roleName = $role->name;
+                        $role->delete();
+                        Utils::notify('Success', "Role '{$roleName}' deleted successfully!", 'success');
+                    } catch (\Exception $e) {
+                        Utils::notify('Error', 'Delete failed: ' . $e->getMessage(), 'danger');
+                    }
+                })
+
         ];
     }
 
     protected function getTableBulkActions(): array
     {
-        return $this->canDelete(new Role())
-            ? [BulkActionGroup::make([DeleteBulkAction::make()])]
+        return $this->canAccess('delete')
+            ? [
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->action(function ($records) {
+                            $records = collect($records);
+                            foreach ($records as $role) {
+                                if ($role->name === 'superadmin') {
+                                    Utils::notify('Error', 'You cannot delete the Superadmin role!', 'danger');
+                                    return;
+                                }
+                            }
+
+                            foreach ($records as $role) {
+                                if ($role->name !== 'superadmin') {
+                                    $role->delete();
+                                }
+                            }
+
+                            Utils::notify('Success', 'Selected roles have been deleted successfully!', 'success');
+                        })
+                ])
+            ]
             : [];
     }
 
@@ -138,7 +173,7 @@ class ManageRoles extends Page implements HasTable
                 ->form($this->getFormSchema())
                 ->action(fn(array $data) => $this->createRole($data))
                 ->color('primary')
-                ->visible(fn() => auth()->user()?->can('role.create')),
+                ->visible(fn() => $this->canAccess('create')),
         ];
     }
 
@@ -152,7 +187,7 @@ class ManageRoles extends Page implements HasTable
         try {
             $role = Role::create(['name' => $data['roleName']]);
             $role->syncPermissions($data['permissions']);
-            Utils::notify('Success', "Role '{$role->name}' created!", 'success');
+            Utils::notify('Success', "Role '{$role->name}' created successfully!", 'success');
         } catch (\Exception $e) {
             Utils::notify('Error', 'Creation failed: ' . $e->getMessage(), 'danger');
         }
@@ -168,7 +203,7 @@ class ManageRoles extends Page implements HasTable
         try {
             $role->update(['name' => $data['roleName']]);
             $role->syncPermissions($data['permissions']);
-            Utils::notify('Success', "Role '{$role->name}' updated!", 'success');
+            Utils::notify('Success', "Role '{$role->name}' updated successfully!", 'success');
         } catch (\Exception $e) {
             Utils::notify('Error', 'Update failed: ' . $e->getMessage(), 'danger');
         }

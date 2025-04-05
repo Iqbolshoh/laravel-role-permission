@@ -27,8 +27,8 @@ class ManageUsers extends Page implements HasTable, HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static string $view = 'filament.pages.manage-users';
-    protected static ?string $navigationGroup = 'Users';
-    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationGroup = 'Users & Roles';
+    protected static ?int $navigationSort = 3;
 
     /*
     |--------------------------------------------------------------------------
@@ -89,11 +89,9 @@ class ManageUsers extends Page implements HasTable, HasForms
     {
         return [
             EditAction::make()
-                ->visible(function (User $record) {
-                    return $this->canAccess('edit') && (
-                        !$record->hasRole('superadmin') || auth()->user()->hasRole('superadmin')
-                    );
-                })
+                ->visible(fn(User $record) => $this->canAccess('edit') &&
+                    $record->id !== auth()->id() &&
+                    (!$record->hasRole('superadmin') || auth()->user()->hasRole('superadmin')))
                 ->form($this->getEditFormSchema())
                 ->mutateRecordDataUsing(function (array $data, User $record): array {
                     $data['role'] = $record->roles->first()?->name;
@@ -104,16 +102,12 @@ class ManageUsers extends Page implements HasTable, HasForms
                 }),
 
             DeleteAction::make()
-                ->visible(function (User $record) {
-                    return $this->canAccess('delete') && (
-                        !$record->hasRole('superadmin') || auth()->user()->hasRole('superadmin')
-                    );
-                })
-                ->before(function (User $record) {
-                    if ($record->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
-                        Utils::notify('Error', 'You cannot delete a Superadmin!', 'error');
-                        return false;
-                    }
+                ->visible(fn(User $record) => $this->canAccess('delete') &&
+                    $record->id !== auth()->id() &&
+                    (!$record->hasRole('superadmin') || auth()->user()->hasRole('superadmin')))
+                ->action(function (User $record): void {
+                    $record->delete();
+                    Utils::notify('Success', "User '{$record->name}' deleted successfully!", 'success');
                 }),
         ];
     }
@@ -126,9 +120,31 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     protected function getTableBulkActions(): array
     {
-        return $this->canAccess('delete') ? [
-            BulkActionGroup::make([DeleteBulkAction::make()]),
-        ] : [];
+        return $this->canAccess('delete')
+            ? [
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->action(function ($records) {
+                            foreach ($records as $user) {
+                                if ($user->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
+                                    Utils::notify('Error', 'You cannot delete a Superadmin user!', 'danger');
+                                    return;
+                                }
+                            }
+
+                            foreach ($records as $user) {
+                                if ($user->id === auth()->id()) {
+                                    Utils::notify('Error', 'You cannot delete yourself!', 'warning');
+                                } else {
+                                    $user->delete();
+                                }
+                            }
+
+                            Utils::notify('Success', 'Selected users have been deleted successfully!', 'success');
+                        })
+                ])
+            ]
+            : [];
     }
 
     /*
@@ -250,11 +266,6 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     private function createUser(array $data): void
     {
-        if (!self::canAccess('create')) {
-            Utils::notify('Error', 'You do not have permission to create a user.', 'error');
-            return;
-        }
-
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -262,7 +273,7 @@ class ManageUsers extends Page implements HasTable, HasForms
         ]);
 
         $user->assignRole($data['role']);
-        Utils::notify('Success', 'User created successfully!', 'success');
+        Utils::notify('Success', "User '{$data['name']}' created successfully!", 'success');
     }
 
     /*
@@ -273,11 +284,6 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     private function updateUser(User $record, array $data): void
     {
-        if ($record->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
-            Utils::notify('Error', 'You cannot update a Superadmin!', 'error');
-            return;
-        }
-
         $record->update([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -285,6 +291,6 @@ class ManageUsers extends Page implements HasTable, HasForms
         ]);
 
         $record->syncRoles($data['role']);
-        Utils::notify('Success', 'User updated successfully!', 'success');
+        Utils::notify('Success', "User '{$data['name']}' updated successfully!", 'success');
     }
 }
