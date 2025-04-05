@@ -29,9 +29,7 @@ class Home extends Page
             'email' => $user->email,
             'role' => optional($user->roles->first())->name,
             'joined' => $user->created_at->format('d M, Y'),
-            'lastLogin' => $user->last_login_at
-                ? $user->last_login_at->format('d M, Y H:i')
-                : 'Not available',
+            'lastLogin' => $user->last_login_at ? $user->last_login_at->format('d M, Y H:i') : 'Not available',
         ];
     }
 }

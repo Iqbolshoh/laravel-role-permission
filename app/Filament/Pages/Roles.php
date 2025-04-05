@@ -30,10 +30,10 @@ class Roles extends Page implements HasTable
     protected static ?int $navigationSort = 2;
 
     /*
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     | Access Control Check
-    |--------------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page
+    |----------------------------------------------------------------------
+    | Checks if the logged-in user has permission to view, create, edit, or delete roles
     */
     public static function canAccess(string $permission = 'view'): bool
     {
@@ -49,11 +49,23 @@ class Roles extends Page implements HasTable
         };
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Get Table Query
+    |----------------------------------------------------------------------
+    | Fetches the roles data from the database with their associated permissions
+    */
     protected function getTableQuery()
     {
         return Role::query()->with('permissions');
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Define Table Columns
+    |----------------------------------------------------------------------
+    | Sets up the columns to display role ID, name, permissions, and creation date
+    */
     protected function getTableColumns(): array
     {
         return [
@@ -69,6 +81,12 @@ class Roles extends Page implements HasTable
         ];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Define Form Schema
+    |----------------------------------------------------------------------
+    | Creates the form structure for adding or editing roles with grouped permissions
+    */
     protected function getFormSchema(): array
     {
         $permissions = Permission::all()
@@ -105,6 +123,12 @@ class Roles extends Page implements HasTable
         return $schema;
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Define Table Actions
+    |----------------------------------------------------------------------
+    | Sets up edit and delete actions for each role in the table
+    */
     protected function getTableActions(): array
     {
         return [
@@ -120,7 +144,6 @@ class Roles extends Page implements HasTable
                 ->modalHeading('Edit Role')
                 ->modalSubmitActionLabel('Update Role'),
 
-
             DeleteAction::make()
                 ->visible(fn(Role $role) => $this->canAccess('delete') && $role->name !== 'superadmin')
                 ->action(function (Role $role) {
@@ -132,10 +155,15 @@ class Roles extends Page implements HasTable
                         Utils::notify('Error', 'Delete failed: ' . $e->getMessage(), 'danger');
                     }
                 })
-
         ];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Define Bulk Table Actions
+    |----------------------------------------------------------------------
+    | Enables bulk deletion of roles, excluding the superadmin role
+    */
     protected function getTableBulkActions(): array
     {
         return $this->canAccess('delete')
@@ -164,6 +192,12 @@ class Roles extends Page implements HasTable
             : [];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Define Header Actions
+    |----------------------------------------------------------------------
+    | Adds a "Create Role" button to the page header if the user has permission
+    */
     protected function getHeaderActions(): array
     {
         return [
@@ -177,6 +211,12 @@ class Roles extends Page implements HasTable
         ];
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Create New Role
+    |----------------------------------------------------------------------
+    | Creates a new role with the provided name and permissions
+    */
     protected function createRole(array $data): void
     {
         if (empty($data['permissions'])) {
@@ -193,6 +233,12 @@ class Roles extends Page implements HasTable
         }
     }
 
+    /*
+    |----------------------------------------------------------------------
+    | Update Existing Role
+    |----------------------------------------------------------------------
+    | Updates a role's name and permissions based on form data
+    */
     protected function updateRole(Role $role, array $data): void
     {
         if (empty($data['permissions'])) {

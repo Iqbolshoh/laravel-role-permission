@@ -17,29 +17,22 @@ class RolePermissionSeeder extends Seeder
         | This section sets up all the necessary permissions and roles for the system
         */
         $config = [
-            // 1. Permissions: What actions can be performed in the system
             'permissions' => [
                 'role' => ['view', 'create', 'edit', 'delete'],
                 'user' => ['view', 'create', 'edit', 'delete'],
                 'profile' => ['view', 'edit', 'delete']
             ],
-
-            // 2. Roles: Types of users in the system
             'roles' => [
                 'superadmin',
                 'user'
                 // Add a new role here
             ],
-
-            // 3. Role Permissions: What each role is allowed to do
             'role_permissions' => [
                 'user' => [
                     'profile' => ['view', 'edit', 'delete']
                 ],
                 // Add permissions for a new role here
             ],
-
-            // 4. User Roles: Assigning specific users to roles
             'user_roles' => [
                 'admin@iqbolshoh.uz' => 'superadmin',
                 'user@iqbolshoh.uz' => 'user',

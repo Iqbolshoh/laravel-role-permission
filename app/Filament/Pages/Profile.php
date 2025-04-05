@@ -33,11 +33,8 @@ class Profile extends Page implements HasForms
     */
     public static function canAccess(string $permission = 'view'): bool
     {
-        $user = auth()->user();
-
-        if (!$user) {
+        if (!$user = auth()->user())
             return false;
-        }
 
         return match ($permission) {
             'view' => $user->can('profile.view'),
@@ -150,25 +147,25 @@ class Profile extends Page implements HasForms
     public function save(): void
     {
         $data = $this->form->getState();
-    
+
         $updateData = [
             'name' => $data['name'],
             'email' => $data['email'],
         ];
-    
+
         if (!empty($data['password'])) {
             $updateData['password'] = Hash::make($data['password']);
         }
-    
+
         Auth::user()->update($updateData);
-    
+
         Auth::logout();
-    
+        session()->invalidate();
+        session()->regenerateToken();
         $this->redirect('/login');
-    
+
         Utils::notify('Success', 'Your profile has been updated successfully!', 'success');
     }
-    
 
     /*
     |---------------------------------------------------------------------- 
