@@ -27,28 +27,6 @@ class Sessions extends Page implements HasForms, HasTable
 
     /*
     |----------------------------------------------------------------------
-    | Access Control
-    |----------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page.
-    */
-    public static function canAccess(): bool
-    {
-        return auth()->user()?->can('profile.view');
-    }
-
-    /*
-    |----------------------------------------------------------------------
-    | Form Schema
-    |----------------------------------------------------------------------
-    | Defines the structure of the form. Currently, no form is defined.
-    */
-    public function form(Form $form): Form
-    {
-        return $form->schema([]);
-    }
-
-    /*
-    |----------------------------------------------------------------------
     | Table Configuration
     |----------------------------------------------------------------------
     | Defines the columns and actions for the sessions table.

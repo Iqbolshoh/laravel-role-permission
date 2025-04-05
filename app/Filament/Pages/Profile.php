@@ -32,31 +32,20 @@ class Profile extends Page implements HasForms
     |----------------------------------------------------------------------
     | Determines if the authenticated user has permission to access this page.
     */
-    public static function canAccess(): bool
+    public static function canAccess(string $permission = 'view'): bool
     {
-        return auth()->user()?->can('profile.view');
-    }
+        $user = auth()->user();
 
-    /*
-    |----------------------------------------------------------------------
-    | Edit Permission Check
-    |----------------------------------------------------------------------
-    | Checks if the authenticated user has permission to edit their profile.
-    */
-    public function canEdit(): bool
-    {
-        return auth()->user()?->can('profile.edit');
-    }
+        if (!$user) {
+            return false;
+        }
 
-    /*
-    |----------------------------------------------------------------------
-    | Delete Permission Check
-    |----------------------------------------------------------------------
-    | Checks if the authenticated user has permission to delete their profile.
-    */
-    public function canDelete(): bool
-    {
-        return auth()->user()?->can('profile.delete');
+        return match ($permission) {
+            'view' => $user->can('profile.view'),
+            'edit' => $user->can('profile.edit'),
+            'delete' => $user->can('profile.delete'),
+            default => false,
+        };
     }
 
     /*
@@ -76,7 +65,7 @@ class Profile extends Page implements HasForms
                             ->label('Full Name')
                             ->required()
                             ->maxLength(255)
-                            ->disabled(fn() => !$this->canEdit()),
+                            ->disabled(fn() => !$this->canAccess('edit')),
 
                         TextInput::make('email')
                             ->label('Email Address')
@@ -84,29 +73,35 @@ class Profile extends Page implements HasForms
                             ->required()
                             ->unique('users', 'email', ignorable: Auth::user())
                             ->maxLength(255)
-                            ->disabled(fn() => !$this->canEdit()),
+                            ->disabled(fn() => !$this->canAccess('edit')),
 
                         TextInput::make('password')
                             ->label('New Password')
                             ->password()
                             ->minLength(8)
                             ->dehydrated(fn(?string $state): bool => filled($state))
-                            ->disabled(fn() => !$this->canEdit())
-                            ->helperText('Leave blank to keep your current password.'),
+                            ->helperText('Leave blank to keep your current password.')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if (empty($state)) {
+                                    $set('password_confirmation', null);
+                                }
+                            })->disabled(fn() => !$this->canAccess('edit')),
 
                         TextInput::make('password_confirmation')
-                            ->label('Confirm New Password')
+                            ->label('Confirm Password')
                             ->password()
+                            ->required(fn($get) => filled($get('password')))
                             ->same('password')
                             ->dehydrated(fn(?string $state): bool => filled($state))
-                            ->disabled(fn() => !$this->canEdit()),
+                            ->disabled(fn() => !$this->canAccess('edit')),
 
                         Actions::make([
                             Action::make('save')
                                 ->label('Save Changes')
                                 ->action('save')
                                 ->color('primary')
-                                ->visible(fn() => $this->canEdit()),
+                                ->visible(fn() => $this->canAccess('edit')),
 
                             Action::make('delete')
                                 ->label('Delete Profile')
@@ -122,7 +117,7 @@ class Profile extends Page implements HasForms
                                         ->autocomplete('current-password'),
                                 ])
                                 ->action(fn($data) => $this->delete($data))
-                                ->visible(fn() => $this->canDelete()),
+                                ->visible(fn() => $this->canAccess('delete')),
                         ])->fullWidth(),
                     ])
                     ->collapsible(),
@@ -155,16 +150,10 @@ class Profile extends Page implements HasForms
     */
     public function save(): void
     {
-        if (!$this->canEdit()) {
-            Utils::notify('Permission Denied', 'You do not have permission to edit your profile.', 'danger');
+        if (!$this->canAccess('edit')) {
+            Utils::notify('Permission Denied', 'You do not have permission to edit your ', 'danger');
             return;
         }
-
-        $this->validate([
-            'data.name' => 'required|max:255',
-            'data.email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
-            'data.password' => 'nullable|min:8|confirmed',
-        ]);
 
         $data = $this->form->getState();
 
@@ -191,8 +180,8 @@ class Profile extends Page implements HasForms
     */
     public function delete($data): void
     {
-        if (!$this->canDelete()) {
-            Utils::notify('Permission Denied', 'You do not have permission to delete your profile.', 'danger');
+        if (!$this->canAccess('delete')) {
+            Utils::notify('Permission Denied', 'You do not have permission to delete your ', 'danger');
             return;
         }
 

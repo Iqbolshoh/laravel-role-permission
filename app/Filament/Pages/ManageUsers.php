@@ -194,10 +194,11 @@ class ManageUsers extends Page implements HasTable, HasForms
                 ->unique('users', 'email', ignorable: fn(?User $record) => $record),
 
             TextInput::make('password')
-                ->label('Password')
+                ->label('New Password')
                 ->password()
                 ->minLength(8)
                 ->dehydrated(fn(?string $state): bool => filled($state))
+                ->helperText('Leave blank to keep your current password.')
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if (empty($state)) {
