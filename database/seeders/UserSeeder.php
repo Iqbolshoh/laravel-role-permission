@@ -12,19 +12,18 @@ class UserSeeder extends Seeder
     {
         /*
         |-------------------------------------------------------------------------- 
-        | Define user data
+        | Define User Data
         |-------------------------------------------------------------------------- 
         | This section defines all necessary users for the system
         */
         $users = [
             ['name' => 'Super Admin', 'email' => 'admin@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')],
-            ['name' => 'User', 'email' => 'user@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')],
-            ['name' => 'Manager', 'email' => 'manager@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')],
+            ['name' => 'User', 'email' => 'user@iqbolshoh.uz', 'password' => Hash::make('IQBOLSHOH')]
         ];
 
         /*
         |-------------------------------------------------------------------------- 
-        | Create users
+        | Create Users
         |-------------------------------------------------------------------------- 
         | This section creates all necessary users for the system
         */
@@ -32,7 +31,7 @@ class UserSeeder extends Seeder
 
         /*
         |-------------------------------------------------------------------------- 
-        | Display success message
+        | Display Success Message
         |-------------------------------------------------------------------------- 
         | This section displays a confirmation message
         */

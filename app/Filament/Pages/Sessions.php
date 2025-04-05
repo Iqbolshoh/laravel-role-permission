@@ -19,9 +19,8 @@ class Sessions extends Page implements HasForms, HasTable
 {
     use InteractsWithForms, InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-device-tablet';
-    protected static ?string $navigationLabel = 'Active Sessions';
-    protected static ?string $navigationGroup = 'Account';
+    protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 5;
     protected static string $view = 'filament.pages.sessions';
 

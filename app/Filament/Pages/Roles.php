@@ -20,13 +20,13 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Helpers\Utils;
 
-class ManageRoles extends Page implements HasTable
+class Roles extends Page implements HasTable
 {
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog';
-    protected static string $view = 'filament.pages.manage-roles';
-    protected static ?string $navigationGroup = 'Users & Roles';
+    protected static string $view = 'filament.pages.roles';
+    protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 2;
 
     /*
@@ -169,7 +169,7 @@ class ManageRoles extends Page implements HasTable
         return [
             Action::make('create')
                 ->label('Create Role')
-                ->icon('heroicon-o-shield-check')
+                ->icon('heroicon-o-plus-circle')
                 ->form($this->getFormSchema())
                 ->action(fn(array $data) => $this->createRole($data))
                 ->color('primary')

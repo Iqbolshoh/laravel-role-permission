@@ -20,14 +20,14 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Helpers\Utils;
 
-class ManageUsers extends Page implements HasTable, HasForms
+class Users extends Page implements HasTable, HasForms
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static string $view = 'filament.pages.manage-users';
-    protected static ?string $navigationGroup = 'Users & Roles';
+    protected static string $view = 'filament.pages.users';
+    protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 3;
 
     /*

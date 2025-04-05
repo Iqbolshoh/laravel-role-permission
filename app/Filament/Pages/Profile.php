@@ -20,8 +20,7 @@ class Profile extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-user-circle';
     protected static string $view = 'filament.pages.profile';
-    protected static ?string $navigationLabel = 'My Profile';
-    protected static ?string $navigationGroup = 'Account';
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 4;
 
     public ?array $data = [];
