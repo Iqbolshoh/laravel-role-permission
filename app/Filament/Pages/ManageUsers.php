@@ -31,47 +31,23 @@ class ManageUsers extends Page implements HasTable, HasForms
     protected static ?int $navigationSort = 5;
 
     /*
-    |---------------------------------------------------------------------- 
+    |--------------------------------------------------------------------------
     | Access Control Check
-    |---------------------------------------------------------------------- 
+    |--------------------------------------------------------------------------
     | Determines if the authenticated user has permission to access this page
     */
-    public static function canAccess(): bool
+    public static function canAccess(string $permission = 'view'): bool
     {
-        return auth()->user()?->can('user.view');
-    }
+        if (!$user = auth()->user())
+            return false;
 
-    /*
-    |---------------------------------------------------------------------- 
-    | Create Permission Check
-    |---------------------------------------------------------------------- 
-    | Checks if the authenticated user has permission to create a user record
-    */
-    public static function canCreate(): bool
-    {
-        return auth()->user()?->can('user.create');
-    }
-
-    /*
-    |---------------------------------------------------------------------- 
-    | Edit Permission Check
-    |---------------------------------------------------------------------- 
-    | Checks if the authenticated user has permission to edit a user record
-    */
-    public function canEdit(): bool
-    {
-        return auth()->check() && auth()->user()->can('user.edit');
-    }
-
-    /*
-    |---------------------------------------------------------------------- 
-    | Delete Permission Check
-    |---------------------------------------------------------------------- 
-    | Checks if the authenticated user has permission to delete a user record
-    */
-    public function canDelete(): bool
-    {
-        return auth()->check() && auth()->user()->can('user.delete');
+        return match ($permission) {
+            'view' => $user->can('user.view'),
+            'create' => $user->can('user.create'),
+            'edit' => $user->can('user.edit'),
+            'delete' => $user->can('user.delete'),
+            default => false,
+        };
     }
 
     /*
@@ -113,7 +89,11 @@ class ManageUsers extends Page implements HasTable, HasForms
     {
         return [
             EditAction::make()
-                ->visible($this->canEdit())
+                ->visible(function (User $record) {
+                    return $this->canAccess('edit') && (
+                        !$record->hasRole('superadmin') || auth()->user()->hasRole('superadmin')
+                    );
+                })
                 ->form($this->getEditFormSchema())
                 ->mutateRecordDataUsing(function (array $data, User $record): array {
                     $data['role'] = $record->roles->first()?->name;
@@ -124,7 +104,17 @@ class ManageUsers extends Page implements HasTable, HasForms
                 }),
 
             DeleteAction::make()
-                ->visible($this->canDelete()),
+                ->visible(function (User $record) {
+                    return $this->canAccess('delete') && (
+                        !$record->hasRole('superadmin') || auth()->user()->hasRole('superadmin')
+                    );
+                })
+                ->before(function (User $record) {
+                    if ($record->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
+                        Utils::notify('Error', 'You cannot delete a Superadmin!', 'error');
+                        return false;
+                    }
+                }),
         ];
     }
 
@@ -136,7 +126,7 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     protected function getTableBulkActions(): array
     {
-        return $this->canDelete() ? [
+        return $this->canAccess('delete') ? [
             BulkActionGroup::make([DeleteBulkAction::make()]),
         ] : [];
     }
@@ -247,7 +237,7 @@ class ManageUsers extends Page implements HasTable, HasForms
                     $this->createUser($data);
                 })
                 ->color('primary')
-                ->visible(fn() => self::canCreate()),
+                ->visible(fn() => self::canAccess('create')),
         ];
     }
 
@@ -259,7 +249,7 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     private function createUser(array $data): void
     {
-        if (!self::canCreate()) {
+        if (!self::canAccess('create')) {
             Utils::notify('Error', 'You do not have permission to create a user.', 'error');
             return;
         }
@@ -282,6 +272,11 @@ class ManageUsers extends Page implements HasTable, HasForms
     */
     private function updateUser(User $record, array $data): void
     {
+        if ($record->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
+            Utils::notify('Error', 'You cannot update a Superadmin!', 'error');
+            return;
+        }
+
         $record->update([
             'name' => $data['name'],
             'email' => $data['email'],
