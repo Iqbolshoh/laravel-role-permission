@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -20,11 +21,33 @@ class UsersResource extends Resource
     protected static string $view = 'filament.pages.users';
     protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 3;
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                //
+                TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+
+                TextInput::make('email')
+                    ->email()
+                    ->required()
+                    ->unique(ignoreRecord: true),
+
+                TextInput::make('password')
+                    ->password()
+                    ->label('Password')
+                    ->required(fn(string $context) => $context === 'create')
+                    ->dehydrated(fn($state) => filled($state))
+                    ->maxLength(255)
+                    ->same('passwordConfirmation'), // 👈 Bu joyda tasdiqlash kerak!
+
+                TextInput::make('passwordConfirmation')
+                    ->password()
+                    ->label('Confirm Password') // 👈 bu 2-parol!
+                    ->required(fn(string $context) => $context === 'create')
+                    ->dehydrated(false), // bu ma’lumot DBga yozilmaydi
             ]);
     }
 
