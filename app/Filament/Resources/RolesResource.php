@@ -3,16 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RolesResource\Pages;
-use App\Filament\Resources\RolesResource\RelationManagers;
+use Filament\Forms\Components\Section;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RolesResource extends Resource
 {
@@ -26,7 +28,31 @@ class RolesResource extends Resource
     {
         return $form
             ->schema([
-                //
+                TextInput::make('name')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->label('Role Name'),
+
+                ...Permission::all()
+                    ->pluck('name')
+                    ->groupBy(fn($perm) => explode('.', $perm, 2)[0])
+                    ->map(function ($permissions, $group) {
+                        return Section::make(ucfirst($group))
+                            ->schema([
+                                Forms\Components\CheckboxList::make('permissions')
+                                    ->options(
+                                        collect($permissions)->mapWithKeys(function ($perm) {
+                                            return [$perm => ucfirst(explode('.', $perm)[1])];
+                                        })
+                                    )
+                                    ->label('Permissions')
+                                    ->columns(min(4, count($permissions)))
+                                    ->bulkToggleable()
+                            ])
+                            ->collapsible()
+                            ->compact();
+                    })
+                    ->all(),
             ]);
     }
 
@@ -34,14 +60,17 @@ class RolesResource extends Resource
     {
         return $table
             ->columns([
-                //
-            ])
-            ->filters([
-                //
+                TextColumn::make('id')->label('ID'),
+                TextColumn::make('name')->label('Role Name'),
+                TextColumn::make('permissions.name')
+                    ->label('Permissions')
+                    ->limit(2)
+                    ->badge()
+                    ->separator(', ')
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -52,9 +81,7 @@ class RolesResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

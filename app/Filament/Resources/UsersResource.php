@@ -41,13 +41,13 @@ class UsersResource extends Resource
                     ->required(fn(string $context) => $context === 'create')
                     ->dehydrated(fn($state) => filled($state))
                     ->maxLength(255)
-                    ->same('passwordConfirmation'), // 👈 Bu joyda tasdiqlash kerak!
+                    ->same('passwordConfirmation'),
 
                 TextInput::make('passwordConfirmation')
                     ->password()
-                    ->label('Confirm Password') // 👈 bu 2-parol!
+                    ->label('Confirm Password')
                     ->required(fn(string $context) => $context === 'create')
-                    ->dehydrated(false), // bu ma’lumot DBga yozilmaydi
+                    ->dehydrated(false),
             ]);
     }
 
