@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RolesResource\Pages;
-use Filament\Forms\Components\Section;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Filament\Forms;
@@ -25,36 +24,34 @@ class RolesResource extends Resource
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                TextInput::make('name')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->label('Role Name'),
+{
+    return $form
+        ->schema([
+            TextInput::make('name')
+                ->required()
+                ->unique(ignoreRecord: true)
+                ->label('Role Name'),
 
-                ...Permission::all()
-                    ->pluck('name')
-                    ->groupBy(fn($perm) => explode('.', $perm, 2)[0])
-                    ->map(function ($permissions, $group) {
-                        return Section::make(ucfirst($group))
-                            ->schema([
-                                Forms\Components\CheckboxList::make('permissions')
-                                    ->options(
-                                        collect($permissions)->mapWithKeys(function ($perm) {
-                                            return [$perm => ucfirst(explode('.', $perm)[1])];
-                                        })
-                                    )
-                                    ->label('Permissions')
-                                    ->columns(min(4, count($permissions)))
-                                    ->bulkToggleable()
-                            ])
-                            ->collapsible()
-                            ->compact();
-                    })
-                    ->all(),
-            ]);
-    }
+            Select::make('permissions')
+                ->multiple()
+                ->relationship('permissions', 'name')
+                ->preload()
+                ->label('Permissions')
+                ->options(function () {
+                    return Permission::all()
+                        ->groupBy(function ($permission) {
+                            return explode('.', $permission->name)[0];
+                        })
+                        ->mapWithKeys(function ($group, $key) {
+                            
+                            return [
+                                ucfirst($key) => $group->pluck('name', 'id'),
+                            ];
+                        });
+                }),
+        ]);
+}
+
 
     public static function table(Table $table): Table
     {
