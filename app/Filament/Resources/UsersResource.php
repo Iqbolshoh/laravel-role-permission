@@ -75,10 +75,10 @@ class UsersResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('ID'),
-                Tables\Columns\TextColumn::make('name')->label('Name'),
-                Tables\Columns\TextColumn::make('email')->label('Email'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime(),
+                Tables\Columns\TextColumn::make('id')->sortable()->label('ID'),
+                Tables\Columns\TextColumn::make('name')->sortable()->label('Name'),
+                Tables\Columns\TextColumn::make('email')->sortable()->label('Email'),
+                Tables\Columns\TextColumn::make('created_at')->sortable()->label('Created')->dateTime(),
             ])
             ->filters([
                 //

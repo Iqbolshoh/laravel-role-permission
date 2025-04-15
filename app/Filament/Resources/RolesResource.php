@@ -77,8 +77,8 @@ class RolesResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')->label('ID'),
-                TextColumn::make('name')->label('Role Name'),
+                TextColumn::make('id')->sortable()->label('ID'),
+                TextColumn::make('name')->sortable()->label('Role Name'),
                 TextColumn::make('permissions.name')
                     ->label('Permissions')
                     ->badge()
