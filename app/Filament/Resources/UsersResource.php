@@ -22,6 +22,26 @@ class UsersResource extends Resource
     protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 3;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Access Control Check
+    |--------------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page
+    */
+    public static function canAccess(string $permission = 'view'): bool
+    {
+        if (!$user = auth()->user())
+            return false;
+
+        return match ($permission) {
+            'view' => $user->can('user.view'),
+            'create' => $user->can('user.create'),
+            'edit' => $user->can('user.edit'),
+            'delete' => $user->can('user.delete'),
+            default => false,
+        };
+    }
+
     public static function form(Form $form): Form
     {
         return $form
