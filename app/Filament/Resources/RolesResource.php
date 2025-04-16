@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RolesResource\Pages;
-use Filament\Notifications\Collection;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Filament\Forms;
@@ -51,7 +50,9 @@ class RolesResource extends Resource
                 TextInput::make('name')
                     ->required()
                     ->unique(ignoreRecord: true)
-                    ->label('Role Name'),
+                    ->label('Role Name')
+                    ->rule('regex:/^[a-zA-Z0-9-]+$/')
+                    ->helperText('Only letters (a-z, A-Z), numbers (0-9), and dashes (-) are allowed.'),
 
                 Select::make('permissions')
                     ->multiple()
@@ -109,11 +110,6 @@ class RolesResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(function (?Collection $records) {
-                            return $records
-                                ? !$records->contains(fn($record) => $record->name === 'superadmin')
-                                : true;
-                        }),
                 ]),
             ]);
     }
