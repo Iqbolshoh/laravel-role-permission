@@ -22,25 +22,25 @@ class UsersResource extends Resource
     protected static ?int $navigationSort = 3;
 
     /*
-    |--------------------------------------------------------------------------
-    | Access Control Check
-    |--------------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page
+    |--------------------------------------------------------------------------------
+    | Role-Based Access Verification
+    |--------------------------------------------------------------------------------
+    | Ensures that only authenticated users with the 'superadmin' role can access 
+    | this resource, restricting unauthorized access to user management features.
     */
-    public static function canAccess(string $permission = 'view'): bool
+    public static function canAccess(): bool
     {
-        if (!$user = auth()->user())
-            return false;
-
-        return match ($permission) {
-            'view' => $user->can('user.view'),
-            'create' => $user->can('user.create'),
-            'edit' => $user->can('user.edit'),
-            'delete' => $user->can('user.delete'),
-            default => false,
-        };
+        $user = auth()->user();
+        return $user && $user->hasRole('superadmin');
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Form Configuration
+    |--------------------------------------------------------------------------------
+    | Defines the form structure for creating and editing users, including fields 
+    | for name, email, password, and role assignment with dynamic role synchronization.
+    */
     public static function form(Form $form): Form
     {
         return $form
@@ -91,23 +91,43 @@ class UsersResource extends Resource
             ]);
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Table Configuration
+    |--------------------------------------------------------------------------------
+    | Configures the table layout for displaying users, including columns for ID, 
+    | name, email, role, and creation date, with actions for editing and deleting users.
+    */
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->sortable()->label('ID'),
-                Tables\Columns\TextColumn::make('name')->sortable()->label('Name'),
-                Tables\Columns\TextColumn::make('email')->sortable()->label('Email'),
+                Tables\Columns\TextColumn::make('id')
+                    ->sortable()
+                    ->label('ID'),
+
+                Tables\Columns\TextColumn::make('name')
+                    ->sortable()
+                    ->label('Name'),
+
+                Tables\Columns\TextColumn::make('email')
+                    ->sortable()
+                    ->label('Email'),
+
                 Tables\Columns\TextColumn::make('roles.name')
                     ->sortable()
                     ->label('Role')
                     ->badge()
                     ->getStateUsing(fn($record) => $record->roles->pluck('name')->implode(', ')),
-                Tables\Columns\TextColumn::make('created_at')->sortable()->label('Created')->dateTime(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->sortable()
+                    ->label('Created')
+                    ->dateTime(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -116,11 +136,24 @@ class UsersResource extends Resource
             ]);
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Relations Configuration
+    |--------------------------------------------------------------------------------
+    | Specifies related models for the resource. Currently, no relations are defined.
+    */
     public static function getRelations(): array
     {
         return [];
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Page Routes Configuration
+    |--------------------------------------------------------------------------------
+    | Defines the routes for the resource pages, including list, create, and edit 
+    | pages for user management.
+    */
     public static function getPages(): array
     {
         return [

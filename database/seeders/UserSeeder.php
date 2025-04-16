@@ -35,6 +35,6 @@ class UserSeeder extends Seeder
         |-------------------------------------------------------------------------- 
         | This section displays a confirmation message
         */
-        $this->command->info('Users seeded: Admin & User!');
+        $this->command->info('Users seeded: Superadmin & Users!');
     }
 }

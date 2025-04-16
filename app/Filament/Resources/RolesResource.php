@@ -25,25 +25,25 @@ class RolesResource extends Resource
     protected static ?int $navigationSort = 2;
 
     /*
-    |--------------------------------------------------------------------------
-    | Access Control Check
-    |--------------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page
+    |--------------------------------------------------------------------------------
+    | Role-Based Access Verification
+    |--------------------------------------------------------------------------------
+    | Ensures that only authenticated users with the 'superadmin' role can access 
+    | this resource, restricting unauthorized access to role management features.
     */
-    public static function canAccess(string $permission = 'view'): bool
+    public static function canAccess(): bool
     {
-        if (!$user = auth()->user())
-            return false;
-
-        return match ($permission) {
-            'view' => $user->can('role.view'),
-            'create' => $user->can('role.create'),
-            'edit' => $user->can('role.edit'),
-            'delete' => $user->can('role.delete'),
-            default => false,
-        };
+        $user = auth()->user();
+        return $user && $user->hasRole('superadmin');
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Form Configuration
+    |--------------------------------------------------------------------------------
+    | Defines the form structure for creating and editing roles, including fields 
+    | for role name and a multi-select for assigning grouped permissions.
+    */
     public static function form(Form $form): Form
     {
         return $form
@@ -58,13 +58,14 @@ class RolesResource extends Resource
                     ->relationship('permissions', 'name')
                     ->preload()
                     ->label('Permissions')
+                    ->required()
+                    ->minItems(1)
                     ->options(function () {
                         return Permission::all()
                             ->groupBy(function ($permission) {
                                 return explode('.', $permission->name)[0];
                             })
                             ->mapWithKeys(function ($group, $key) {
-
                                 return [
                                     ucfirst($key) => $group->pluck('name', 'id'),
                                 ];
@@ -73,21 +74,35 @@ class RolesResource extends Resource
             ]);
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Table Configuration
+    |--------------------------------------------------------------------------------
+    | Configures the table layout for displaying roles, including columns for ID, 
+    | role name, and permissions, with actions for editing and deleting non-superadmin roles.
+    */
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                TextColumn::make('id')->sortable()->label('ID'),
-                TextColumn::make('name')->sortable()->label('Role Name'),
+                TextColumn::make('id')
+                    ->sortable()
+                    ->label('ID'),
+
+                TextColumn::make('name')
+                    ->sortable()
+                    ->label('Role Name'),
+
                 TextColumn::make('permissions.name')
                     ->label('Permissions')
                     ->badge()
-                    ->separator(', ')
+                    ->separator(', '),
             ])
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => $record->name !== 'superadmin'),
+
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn($record) => $record->name !== 'superadmin'),
             ])
@@ -103,11 +118,24 @@ class RolesResource extends Resource
             ]);
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Relations Configuration
+    |--------------------------------------------------------------------------------
+    | Specifies related models for the resource. Currently, no relations are defined.
+    */
     public static function getRelations(): array
     {
         return [];
     }
 
+    /*
+    |--------------------------------------------------------------------------------
+    | Page Routes Configuration
+    |--------------------------------------------------------------------------------
+    | Defines the routes for the resource pages, including list, create, and edit 
+    | pages for role management.
+    */
     public static function getPages(): array
     {
         return [

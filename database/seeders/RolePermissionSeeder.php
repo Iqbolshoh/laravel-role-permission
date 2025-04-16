@@ -18,8 +18,6 @@ class RolePermissionSeeder extends Seeder
         */
         $config = [
             'permissions' => [
-                'role' => ['view', 'create', 'edit', 'delete'],
-                'user' => ['view', 'create', 'edit', 'delete'],
                 'profile' => ['view', 'edit', 'delete']
             ],
             'roles' => [
@@ -29,7 +27,7 @@ class RolePermissionSeeder extends Seeder
             ],
             'role_permissions' => [
                 'user' => [
-                    'profile' => ['view', 'edit', 'delete']
+                    'profile' => ['view', 'edit']
                 ],
                 // Add permissions for a new role here
             ],
