@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-     {{-- User info --}}
+    {{-- User info --}}
     <div class="p-6 bg-white rounded-xl shadow-md dark:bg-gray-900">
         <div class="flex items-center gap-2">
             <img class="w-16 h-16 rounded-full border-2 border-primary-500"
