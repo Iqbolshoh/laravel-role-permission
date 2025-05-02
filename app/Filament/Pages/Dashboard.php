@@ -5,10 +5,10 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 
-class Home extends Page
+class Dashboard extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
-    protected static string $view = 'filament.pages.home';
+    protected static string $view = 'filament.pages.dashboard';
     protected static ?string $slug = '/';
     protected static ?int $navigationSort = 1;
 
