@@ -12,8 +12,8 @@ class ListUsers extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return auth()->user()?->can('user.create')
-            ? [Actions\CreateAction::make()]
-            : [];
+        return [
+            Actions\CreateAction::make(),
+        ];
     }
 }
