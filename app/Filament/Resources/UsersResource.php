@@ -22,16 +22,14 @@ class UsersResource extends Resource
     protected static ?int $navigationSort = 3;
 
     /*
-    |--------------------------------------------------------------------------------
-    | Role-Based Access Verification
-    |--------------------------------------------------------------------------------
-    | Ensures that only authenticated users with the 'superadmin' role can access 
-    | this resource, restricting unauthorized access to user management features.
+    |----------------------------------------------------------------------
+    | Access Control
+    |----------------------------------------------------------------------
+    | Determines if the authenticated user has permission to access this page.
     */
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-        return $user && $user->hasRole('superadmin');
+        return auth()->user()?->can('user.view') ?? false;
     }
 
     /*
