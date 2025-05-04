@@ -3,14 +3,14 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UsersResource\Pages;
-use App\Filament\Resources\UsersResource\RelationManagers;
 use App\Models\User;
-use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -68,28 +68,39 @@ class UsersResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+
+                TextColumn::make('id')
+                    ->label('ID')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('email')
+
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+
+                TextColumn::make('email')
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('roles.name')
+
+                TextColumn::make('roles.name')
                     ->badge()
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('roles')
+                SelectFilter::make('roles')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make('Delete'),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn($record) => auth()->user()->can('user.edit') && !$record->hasRole('superadmin')),
+                Tables\Actions\DeleteAction::make('Delete')
+                    ->visible(fn($record) => auth()->user()->can('user.delete') && !$record->hasRole('superadmin')),
             ])
             ->bulkActions([]);
     }
