@@ -13,7 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
 
 class RolesResource extends Resource
@@ -45,16 +46,16 @@ class RolesResource extends Resource
                     ->label('Role Name')
                     ->rule('regex:/^[a-zA-Z0-9-]+$/')
                     ->helperText('Only letters (a-z, A-Z), numbers (0-9), and dashes (-) are allowed.')
-                    ->disabled(fn($record) => $record->name === 'superadmin'),
+                    ->disabled(fn($record) => $record && $record->name === 'superadmin'),
 
                 Select::make('permissions')
                     ->multiple()
                     ->relationship('permissions', 'name')
                     ->preload()
                     ->label('Permissions')
-                    ->required(fn($record) => $record->name !== 'superadmin')
-                    ->minItems(fn($record) => $record->name !== 'superadmin' ? 1 : null)
-                    ->disabled(fn($record) => $record->name === 'superadmin')
+                    ->required(fn($record) => $record && $record->name !== 'superadmin')
+                    ->minItems(fn($record) => $record && $record->name !== 'superadmin' ? 1 : null)
+                    ->disabled(fn($record) => $record && $record->name === 'superadmin')
                     ->options(function () {
                         return Permission::all()
                             ->groupBy(function ($permission) {
@@ -78,18 +79,41 @@ class RolesResource extends Resource
             ->columns([
                 TextColumn::make('id')
                     ->sortable()
+                    ->searchable()
                     ->label('ID'),
 
                 TextColumn::make('name')
                     ->sortable()
+                    ->searchable()
                     ->label('Role Name'),
 
                 TextColumn::make('permissions.name')
                     ->label('Permissions')
                     ->badge()
+                    ->searchable()
                     ->separator(', '),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label('Created At'),
             ])
-            ->filters([])
+            ->filters([
+                SelectFilter::make('permissions')
+                    ->label('Filter by Permission')
+                    ->options(function () {
+                        return Permission::pluck('name', 'id')->toArray();
+                    })
+                    ->multiple()
+                    ->preload()
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            $query->whereHas('permissions', function (Builder $subQuery) use ($data) {
+                                $subQuery->whereIn('permissions.id', $data['values']);
+                            });
+                        }
+                    }),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => $record->name !== 'superadmin'),
@@ -97,7 +121,8 @@ class RolesResource extends Resource
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn($record) => $record->name !== 'superadmin'),
             ])
-            ->bulkActions([]);
+            ->bulkActions([])
+            ->defaultSort('id', 'asc');
     }
 
     /**
