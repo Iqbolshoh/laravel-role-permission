@@ -100,16 +100,12 @@ class RolesResource extends Resource
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->name !== 'superadmin'),
+                    ->visible(fn($record) => $record->name !== 'superadmin' && auth()->user()->can('role.edit')),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => $record->name !== 'superadmin'),
+                    ->visible(fn($record) => $record->name !== 'superadmin' && auth()->user()->can('role.delete')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                ]),
-            ]);
+            ->bulkActions([]);
     }
 
     /*
