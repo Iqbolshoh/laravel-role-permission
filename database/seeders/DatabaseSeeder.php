@@ -15,14 +15,6 @@ class DatabaseSeeder extends Seeder
     {
         /*
         |-------------------------------------------------------------------------- 
-        | Call UserSeeder
-        |-------------------------------------------------------------------------- 
-        | This section triggers the UserSeeder to create initial users in the system
-        */
-        $this->call(UserSeeder::class);
-
-        /*
-        |-------------------------------------------------------------------------- 
         | Call RolePermissionSeeder
         |-------------------------------------------------------------------------- 
         | This section triggers the RolePermissionSeeder to set up roles and permissions
