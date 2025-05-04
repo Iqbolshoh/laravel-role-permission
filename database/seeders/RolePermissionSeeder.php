@@ -44,7 +44,6 @@ class RolePermissionSeeder extends Seeder
             |
             */
             'permissions' => [
-                'role' => ['view', 'create', 'edit', 'delete'],
                 'user' => ['view', 'create', 'edit', 'delete'],
                 'profile' => ['view', 'edit', 'delete'],
                 'session' => ['view', 'delete'],
@@ -91,7 +90,7 @@ class RolePermissionSeeder extends Seeder
                 ],
                 'user' => [
                     [
-                        'name' => 'Regular User',
+                        'name' => 'Simple User',
                         'email' => 'user@iqbolshoh.uz',
                         'password' => bcrypt('IQBOLSHOH'),
                         'role' => 'user',
@@ -126,11 +125,9 @@ class RolePermissionSeeder extends Seeder
         */
         foreach ($config['roles'] as $roleName => $roleConfig) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-            $permissions = $roleName === 'superadmin'
-                ? Permission::all()->pluck('name')
-                : collect($roleConfig['permissions'])->flatMap(
-                    fn($actions, $resource) => collect($actions)->map(fn($action) => "$resource.$action")
-                );
+            $permissions = collect($roleConfig['permissions'])->flatMap(
+                fn($actions, $resource) => collect($actions)->map(fn($action) => "$resource.$action")
+            );
             $role->syncPermissions($permissions);
         }
 

@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions;
 use Illuminate\Database\Eloquent\Builder;
 
 class RolesResource extends Resource
@@ -23,24 +24,17 @@ class RolesResource extends Resource
     protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 2;
 
-    /*
-    |----------------------------------------------------------------------
-    | Access Control
-    |----------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page.
-    */
+    /**
+     * Access Control: Determines if the user can access this page.
+     */
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('role.view') ?? false;
+        return auth()->user()?->hasRole('superadmin') ?? false;
     }
 
-    /*
-    |--------------------------------------------------------------------------------
-    | Form Configuration
-    |--------------------------------------------------------------------------------
-    | Defines the form structure for creating and editing roles, including fields 
-    | for role name and a multi-select for assigning grouped permissions.
-    */
+    /**
+     * Form Configuration: Defines fields for role creation and editing.
+     */
     public static function form(Form $form): Form
     {
         return $form
@@ -50,15 +44,17 @@ class RolesResource extends Resource
                     ->unique(ignoreRecord: true)
                     ->label('Role Name')
                     ->rule('regex:/^[a-zA-Z0-9-]+$/')
-                    ->helperText('Only letters (a-z, A-Z), numbers (0-9), and dashes (-) are allowed.'),
+                    ->helperText('Only letters (a-z, A-Z), numbers (0-9), and dashes (-) are allowed.')
+                    ->disabled(fn($record) => $record->name === 'superadmin'),
 
                 Select::make('permissions')
                     ->multiple()
                     ->relationship('permissions', 'name')
                     ->preload()
                     ->label('Permissions')
-                    ->required()
-                    ->minItems(1)
+                    ->required(fn($record) => $record->name !== 'superadmin')
+                    ->minItems(fn($record) => $record->name !== 'superadmin' ? 1 : null)
+                    ->disabled(fn($record) => $record->name === 'superadmin')
                     ->options(function () {
                         return Permission::all()
                             ->groupBy(function ($permission) {
@@ -73,13 +69,9 @@ class RolesResource extends Resource
             ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------------
-    | Table Configuration
-    |--------------------------------------------------------------------------------
-    | Configures the table layout for displaying roles, including columns for ID, 
-    | role name, and permissions, with actions for editing and deleting non-superadmin roles.
-    */
+    /**
+     * Table Configuration: Configures the table for displaying roles.
+     */
     public static function table(Table $table): Table
     {
         return $table
@@ -100,32 +92,25 @@ class RolesResource extends Resource
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->name !== 'superadmin' && auth()->user()->can('role.edit')),
+                    ->visible(fn($record) => $record->name !== 'superadmin'),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => $record->name !== 'superadmin' && auth()->user()->can('role.delete')),
+                    ->visible(fn($record) => $record->name !== 'superadmin'),
             ])
             ->bulkActions([]);
     }
 
-    /*
-    |--------------------------------------------------------------------------------
-    | Relations Configuration
-    |--------------------------------------------------------------------------------
-    | Specifies related models for the resource. Currently, no relations are defined.
-    */
+    /**
+     * Relations Configuration: No related models defined.
+     */
     public static function getRelations(): array
     {
         return [];
     }
 
-    /*
-    |--------------------------------------------------------------------------------
-    | Page Routes Configuration
-    |--------------------------------------------------------------------------------
-    | Defines the routes for the resource pages, including list, create, and edit 
-    | pages for role management.
-    */
+    /**
+     * Page Routes Configuration: Defines routes for role management.
+     */
     public static function getPages(): array
     {
         return [

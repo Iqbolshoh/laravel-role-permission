@@ -10,10 +10,12 @@ class EditRoles extends EditRecord
 {
     protected static string $resource = RolesResource::class;
 
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->visible(fn($record) => $record->name !== 'superadmin'),
         ];
     }
 }
