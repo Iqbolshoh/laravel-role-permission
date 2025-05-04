@@ -9,23 +9,30 @@ use App\Models\User;
 /**
  * Class RolePermissionSeeder
  *
- * This seeder handles the creation of roles, permissions, and their assignment to users.
- * It utilizes the Spatie Permission package for managing role-based access control.
+ * This seeder manages the creation of roles, permissions, and their assignment to users.
+ * It leverages the Spatie Permission package to implement role-based access control (RBAC).
  */
 class RolePermissionSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Run the database seeding process.
      *
      * Creates all necessary permissions, roles, and assigns them to users
-     * according to the predefined configuration array.
+     * based on a predefined configuration array.
      *
      * @return void
      */
     public function run(): void
     {
-        /* ----- Configuration Array ----- */
-        /* Defines permissions, roles with their permissions, and users by role. */
+        /*
+        |---------------------------------------------------------------
+        | Configuration Array
+        |---------------------------------------------------------------
+        |
+        | Defines permissions, roles with their associated permissions,
+        | and users grouped by role.
+        |
+        */
         $config = [
             /*
             |---------------------------------------------------------------
@@ -48,13 +55,13 @@ class RolePermissionSeeder extends Seeder
             | Roles and Their Permissions
             |---------------------------------------------------------------
             |
-            | Assign permissions to specific user roles.
-            | Superadmin has all permissions by default.
+            | Assigns permissions to specific user roles.
+            | The 'superadmin' role automatically receives all permissions.
             |
             */
             'roles' => [
                 'superadmin' => [
-                    'permissions' => [], // Will automatically get all permissions
+                    'permissions' => [], // Automatically assigned all permissions
                 ],
                 'user' => [
                     'permissions' => [
@@ -69,7 +76,7 @@ class RolePermissionSeeder extends Seeder
             | Users Grouped by Role
             |---------------------------------------------------------------
             |
-            | Predefined users for each role with credentials.
+            | Predefined users for each role with their credentials.
             | Used for seeding or demo/testing purposes.
             |
             */
@@ -93,57 +100,67 @@ class RolePermissionSeeder extends Seeder
             ],
         ];
 
-        /* ----- Create Permissions ----- */
-        /* Iterate over permissions and create them in "resource.action" format. */
+        /*
+        |---------------------------------------------------------------
+        | Create Permissions
+        |---------------------------------------------------------------
+        |
+        | Creates permissions in the "resource.action" format.
+        | Example: "role.view", "user.create".
+        |
+        */
         collect($config['permissions'])->each(
             fn($actions, $resource) => collect($actions)->each(
-                fn($action) => Permission::firstOrCreate([
-                    'name' => "$resource.$action",
-                    'guard_name' => 'web',
-                ])
+                fn($action) => Permission::firstOrCreate(['name' => "$resource.$action", 'guard_name' => 'web'])
             )
         );
 
-        /* ----- Create Roles and Assign Permissions ----- */
-        /* Create roles and assign permissions; superadmin gets all permissions. */
-        collect($config['roles'])->each(
-            fn($roleConfig, $roleName) =>
-            tap(
-                Role::firstOrCreate([
-                    'name' => $roleName,
-                    'guard_name' => 'web',
-                ]),
-                fn($role) => $role->syncPermissions(
-                    $roleName === 'superadmin'
-                    ? Permission::all()->pluck('name') // Superadmin gets all
-                    : collect($roleConfig['permissions'])->flatMap(
-                        fn($actions, $resource) => collect($actions)->map(fn($action) => "$resource.$action")
-                    )
-                )
-            )
-        );
+        /*
+        |---------------------------------------------------------------
+        | Create Roles and Assign Permissions
+        |---------------------------------------------------------------
+        |
+        | Creates roles and assigns the corresponding permissions.
+        | The 'superadmin' role is granted all permissions.
+        |
+        */
+        foreach ($config['roles'] as $roleName => $roleConfig) {
+            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            $permissions = $roleName === 'superadmin'
+                ? Permission::all()->pluck('name')
+                : collect($roleConfig['permissions'])->flatMap(
+                    fn($actions, $resource) => collect($actions)->map(fn($action) => "$resource.$action")
+                );
+            $role->syncPermissions($permissions);
+        }
 
-        /* ----- Create Users and Assign Roles ----- */
-        /* Seed users with credentials and assign their roles. */
-        collect($config['users_by_role'])->each(
-            fn($users, $role) =>
-            collect($users)->each(
-                fn($userData) =>
-                tap(
-                    User::firstOrCreate(
-                        ['email' => $userData['email']],
-                        [
-                            'name' => $userData['name'],
-                            'password' => $userData['password'],
-                        ]
-                    ),
-                    fn($user) => $user->assignRole($userData['role'])
-                )
-            )
-        );
+        /*
+        |---------------------------------------------------------------
+        | Create Users and Assign Roles
+        |---------------------------------------------------------------
+        |
+        | Creates users and assigns the appropriate roles to them.
+        |
+        */
+        foreach ($config['users_by_role'] as $users) {
+            foreach ($users as $userData) {
+                $user = User::firstOrCreate(
+                    ['email' => $userData['email']],
+                    ['name' => $userData['name'], 'password' => $userData['password']]
+                );
+                $user->assignRole($userData['role']);
+            }
+        }
 
-        /* ----- Success Confirmation ----- */
-        /* Output success message to console. */
-        $this->command->info('Roles, Permissions, and Users seeded successfully!');
+        /*
+        |---------------------------------------------------------------
+        | Success Confirmation
+        |---------------------------------------------------------------
+        |
+        | Outputs a success message to the console indicating that
+        | roles, permissions, and users have been seeded successfully.
+        |
+        */
+        $this->command->info('Permissions, Roles, and users seeded successfully!');
     }
 }
