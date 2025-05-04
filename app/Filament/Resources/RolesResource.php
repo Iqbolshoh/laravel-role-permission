@@ -29,7 +29,7 @@ class RolesResource extends Resource
      */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('superadmin') ?? false;
+        return auth()->user()?->hasRole('superadmin');
     }
 
     /**

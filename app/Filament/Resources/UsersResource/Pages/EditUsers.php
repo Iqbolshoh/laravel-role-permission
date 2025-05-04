@@ -12,8 +12,8 @@ class EditUsers extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\DeleteAction::make(),
-        ];
+        return $this->record->can('user.delete')
+            ? []
+            : [Actions\DeleteAction::make()];
     }
 }
