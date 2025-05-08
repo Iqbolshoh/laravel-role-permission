@@ -12,8 +12,6 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
@@ -24,81 +22,81 @@ class UsersResource extends Resource
     protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    /**
+     * Access Control: Determines if the user can access this page.
+     */
+    public static function canAccess(): bool
     {
-        return $form
-            ->schema([
-                TextInput::make('name')
-                    ->required()
-                    ->maxLength(255)
-                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
-
-                TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->maxLength(255)
-                    ->unique(table: User::class, column: 'email', ignorable: fn($record) => $record)
-                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
-
-                TextInput::make('password')
-                    ->password()
-                    ->label('Password')
-                    ->required(fn(string $context) => $context === 'create')
-                    ->requiredWith('passwordConfirmation')
-                    ->minLength(8)
-                    ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
-                    ->dehydrated(fn($state) => filled($state))
-                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
-                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
-
-                TextInput::make('passwordConfirmation')
-                    ->password()
-                    ->label('Confirm Password')
-                    ->required(fn(string $context) => $context === 'create')
-                    ->requiredWith('password')
-                    ->minLength(8)
-                    ->same('password')
-                    ->dehydrated(false)
-                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
-                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
-
-                    Select::make('roles')
-                    ->relationship('roles', 'name')
-                    ->preload()
-                    ->multiple()
-                    ->searchable()
-                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin'))
-                    ->options(function() {
-                        return Role::where('name', '!=', 'superadmin')->pluck('name', 'id'); 
-                    }),                
-            ]);
+        return auth()->user()?->can('user.view');
     }
 
+    /**
+     * Form Configuration: Defines fields for user creation and editing.
+     */
+    public static function form(Form $form): Form
+    {
+        return $form->schema([
+            TextInput::make('name')
+                ->required()
+                ->maxLength(255)
+                ->disabled(fn($record) => auth()->check() && $record && auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
+
+            TextInput::make('email')
+                ->email()
+                ->required()
+                ->maxLength(255)
+                ->unique(User::class, 'email', ignoreRecord: true)
+                ->disabled(fn($record) => auth()->check() && auth()->user() && auth()->user()->hasRole('superadmin') && $record && $record->hasRole('superadmin')),
+
+            TextInput::make('password')
+                ->password()
+                ->label('Password')
+                ->required(fn(string $context) => $context === 'create')
+                ->requiredWith('passwordConfirmation')
+                ->minLength(8)
+                ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
+                ->dehydrated(fn($state) => filled($state))
+                ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
+                ->disabled(fn($record) => auth()->user()?->hasRole('superadmin') && $record?->hasRole('superadmin')),
+
+            TextInput::make('passwordConfirmation')
+                ->password()
+                ->label('Confirm Password')
+                ->required(fn(string $context) => $context === 'create')
+                ->requiredWith('password')
+                ->minLength(8)
+                ->same('password')
+                ->dehydrated(false)
+                ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
+                ->disabled(fn($record) => auth()->user() && $record && auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
+
+            /**
+             * Role Assignment: Relationship field to assign roles to the user.
+             */
+            Select::make('roles')
+                ->relationship('roles', 'name')
+                ->preload()
+                ->multiple()
+                ->searchable()
+                ->disabled(fn($record) => auth()->user() && $record && (auth()->user()->id === $record->id || (auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin'))))
+                ->options(function () {
+                    return Role::where('name', '!=', 'superadmin')->pluck('name', 'id');
+                }),
+        ]);
+    }
+
+    /**
+     * Table Configuration: Configures the table for displaying users.
+     */
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('email')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('roles.name')
-                    ->badge()
-                    ->sortable(),
-
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable(),
+                TextColumn::make('id')->label('ID')->searchable()->sortable(),
+                TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('email')->searchable()->sortable(),
+                TextColumn::make('roles.name')->badge()->sortable(),
+                TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([
                 SelectFilter::make('roles')
@@ -108,18 +106,24 @@ class UsersResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => auth()->user()->can('user.edit') && !$record->hasRole('superadmin')),
+                    ->visible(fn($record) => auth()->check() && auth()->user()->can('user.edit') && !$record->hasRole('superadmin')), // Tahrir qilish uchun shart
                 Tables\Actions\DeleteAction::make('Delete')
-                    ->visible(fn($record) => auth()->user()->can('user.delete') && !$record->hasRole('superadmin')),
+                    ->visible(fn($record) => auth()->check() && auth()->user()->can('user.delete') && !$record->hasRole('superadmin')), // O'chirish uchun shart
             ])
             ->bulkActions([]);
     }
 
+    /**
+     * Relations Configuration: No related models defined.
+     */
     public static function getRelations(): array
     {
         return [];
     }
 
+    /**
+     * Page Routes Configuration: Defines routes for user management.
+     */
     public static function getPages(): array
     {
         return [

@@ -49,10 +49,11 @@ class RolesResource extends Resource
                     ->disabled(fn($record) => $record && $record->name === 'superadmin'),
 
                 Select::make('permissions')
-                    ->multiple()
                     ->relationship('permissions', 'name')
-                    ->preload()
                     ->label('Permissions')
+                    ->preload()
+                    ->multiple()
+                    ->searchable()
                     ->required(fn($record) => $record && $record->name !== 'superadmin')
                     ->minItems(fn($record) => $record && $record->name !== 'superadmin' ? 1 : null)
                     ->disabled(fn($record) => $record && $record->name === 'superadmin')
