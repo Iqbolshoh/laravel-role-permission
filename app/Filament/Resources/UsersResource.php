@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UsersResource extends Resource
 {
@@ -61,15 +62,17 @@ class UsersResource extends Resource
                     ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
                     ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
 
-                Select::make('roles')
+                    Select::make('roles')
                     ->relationship('roles', 'name')
                     ->preload()
                     ->multiple()
                     ->searchable()
-                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')), // Agar superadmin bo'lsa, faqat o'zi uchun role ni saqlay oladi
+                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin'))
+                    ->options(function() {
+                        return Role::where('name', '!=', 'superadmin')->pluck('name', 'id'); 
+                    }),                
             ]);
     }
-
 
     public static function table(Table $table): Table
     {
