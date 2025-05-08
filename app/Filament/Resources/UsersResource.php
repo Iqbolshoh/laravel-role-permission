@@ -29,13 +29,15 @@ class UsersResource extends Resource
             ->schema([
                 TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
 
                 TextInput::make('email')
                     ->email()
                     ->required()
                     ->maxLength(255)
-                    ->unique(table: User::class, column: 'email', ignorable: fn($record) => $record),
+                    ->unique(table: User::class, column: 'email', ignorable: fn($record) => $record)
+                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
 
                 TextInput::make('password')
                     ->password()
@@ -45,7 +47,8 @@ class UsersResource extends Resource
                     ->minLength(8)
                     ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
                     ->dehydrated(fn($state) => filled($state))
-                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers),
+                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
+                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
 
                 TextInput::make('passwordConfirmation')
                     ->password()
@@ -55,14 +58,18 @@ class UsersResource extends Resource
                     ->minLength(8)
                     ->same('password')
                     ->dehydrated(false)
-                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers),
+                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
+                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
 
                 Select::make('roles')
                     ->relationship('roles', 'name')
                     ->preload()
-                    ->searchable(),
+                    ->multiple()
+                    ->searchable()
+                    ->disabled(fn($record) => auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')), // Agar superadmin bo'lsa, faqat o'zi uchun role ni saqlay oladi
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
