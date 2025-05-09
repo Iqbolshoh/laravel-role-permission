@@ -1,48 +1,37 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Resources;
 
 use App\Models\Session;
-use Filament\Pages\Page;
-use Filament\Forms\Form;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\DeleteAction;
+use App\Filament\Resources\SessionsResource\Pages;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Filament\Resources\Resource;
+use Filament\Tables\Table;
+use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions\DeleteAction;
 
-class Sessions extends Page implements HasForms, HasTable
+class SessionsResource extends Resource
 {
-    use InteractsWithForms, InteractsWithTable;
-
+    protected static ?string $model = Session::class;
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
     protected static ?string $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 5;
-    protected static string $view = 'filament.pages.sessions';
 
-    /*
-    |----------------------------------------------------------------------
-    | Access Control
-    |----------------------------------------------------------------------
-    | Determines if the authenticated user has permission to access this page.
-    */
+    /**
+     * Access Control: Determines if the user can access this resource.
+     */
     public static function canAccess(): bool
     {
-        return auth()->check() && auth()->user()->can('profile.view');
+        return auth()->user()?->can('session.view');
     }
 
-    /*
-    |----------------------------------------------------------------------
-    | Table Configuration
-    |----------------------------------------------------------------------
-    | Defines the columns and actions for the sessions table.
-    | Displays user device name, IP address, and last activity.
-    */
-    public function table(Table $table): Table
+    /**
+     * Defines the table structure, columns, and actions for the Sessions resource.
+     */
+    public static function table(Table $table): Table
     {
         return $table
             ->columns([
@@ -60,7 +49,7 @@ class Sessions extends Page implements HasForms, HasTable
                     ->dateTime()
                     ->sortable(),
             ])
-            ->query(Session::query()->where('user_id', Auth::id()))
+            ->query(fn() => Session::query()->where('user_id', Auth::id()))
             ->defaultSort('last_activity', 'desc')
             ->actions([
                 DeleteAction::make()
@@ -68,16 +57,36 @@ class Sessions extends Page implements HasForms, HasTable
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->requiresConfirmation()
+                    ->visible(fn() => auth()->user()?->can('session.delete'))
                     ->action(function (Session $record) {
                         if ($record->id === session()->getId()) {
                             Auth::logout();
                             session()->invalidate();
                             session()->regenerateToken();
-                            $this->redirect('/login');
+                            redirect('/login');
                         }
+
                         DB::table('sessions')->where('id', $record->id)->delete();
-                        \Log::info("Session ID [{$record->id}] deleted.");
+                        Log::info("Session ID [{$record->id}] deleted.");
                     }),
             ]);
+    }
+
+    /**
+     * Defines the pages associated with this resource.
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListSessions::route('/'),
+        ];
+    }
+
+    /**
+     * Determines if a user can create new session entries (disabled here).
+     */
+    public static function canCreate(): bool
+    {
+        return false;
     }
 }
