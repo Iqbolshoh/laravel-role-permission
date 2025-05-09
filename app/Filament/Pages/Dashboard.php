@@ -12,13 +12,9 @@ class Dashboard extends Page
     protected static ?string $slug = '/';
     protected static ?int $navigationSort = 1;
 
-    /*
-    |----------------------------------------------------------------------
-    | getViewData
-    |----------------------------------------------------------------------
-    | Retrieves the current user's name, email, role, join date, and 
-    | last login time.
-    */
+    /**
+     * getViewData: Retrieves the current user's name, email, role, join date, and last login time.
+     */
     public function getViewData(): array
     {
         $user = Auth::user();

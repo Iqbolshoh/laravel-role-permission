@@ -13,9 +13,6 @@ class EditRoles extends EditRecord
 
     protected array $permissions = [];
 
-    /**
-     * Mutate the form data before saving.
-     */
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->permissions = $data['permissions'] ?? [];
@@ -23,9 +20,6 @@ class EditRoles extends EditRecord
         return $data;
     }
 
-    /**
-     * After updating the role, sync its permissions.
-     */
     protected function afterSave(): void
     {
         if (!empty($this->permissions)) {
@@ -34,9 +28,6 @@ class EditRoles extends EditRecord
         }
     }
 
-    /**
-     * Hide delete action for superadmin.
-     */
     protected function getHeaderActions(): array
     {
         return [

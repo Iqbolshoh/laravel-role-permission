@@ -52,28 +52,25 @@ class UsersResource extends Resource
                 ->password()
                 ->label('Password')
                 ->minLength(8)
-                ->requiredWith('passwordConfirmation') // Ikkinchi kiritilsa, bu ham majburiy
-                ->dehydrated(fn(?string $state): bool => filled($state)) // Bazaga faqat to‘ldirilsa yuboriladi
+                ->requiredWith('passwordConfirmation')
+                ->dehydrated(fn(?string $state): bool => filled($state))
                 ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
 
             TextInput::make('passwordConfirmation')
                 ->password()
                 ->label('Confirm Password')
                 ->minLength(8)
-                ->requiredWith('password') // Birinchi kiritilsa, bu ham majburiy
-                ->same('password') // Parollar mos bo‘lishi shart
-                ->dehydrated(fn(?string $state): bool => filled($state)) // Faqat to‘ldirilsa yuboriladi
+                ->requiredWith('password')
+                ->same('password')
+                ->dehydrated(fn(?string $state): bool => filled($state))
                 ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
 
-
-            /**
-             * Role Assignment: Relationship field to assign roles to the user.
-             */
             Select::make('roles')
                 ->relationship('roles', 'name')
                 ->preload()
                 ->multiple()
                 ->searchable()
+                ->minItems(1)
                 ->options(fn() => Role::where('name', '!=', 'superadmin')->pluck('name', 'id'))
                 ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
         ]);

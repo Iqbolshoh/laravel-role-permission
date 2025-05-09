@@ -63,7 +63,6 @@ class Profile extends Page implements HasForms
                             ->label('Current Password')
                             ->password()
                             ->required(fn($get) => filled($get('password')))
-                            ->dehydrated(false)
                             ->helperText('Enter your current password to change it.')
                             ->disabled(fn() => !auth()->user()?->can('profile.edit')),
 
@@ -71,9 +70,10 @@ class Profile extends Page implements HasForms
                             ->label('New Password')
                             ->password()
                             ->minLength(8)
-                            ->dehydrated(fn(?string $state): bool => filled($state))
                             ->helperText('Leave blank to keep your current password.')
                             ->reactive()
+                            ->required(fn($get) => filled($get('current_password')))
+                            ->dehydrated(fn(?string $state): bool => filled($state))
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if (empty($state)) {
                                     $set('password_confirmation', null);
@@ -89,6 +89,7 @@ class Profile extends Page implements HasForms
                             ->same('password')
                             ->dehydrated(fn(?string $state): bool => filled($state))
                             ->disabled(fn() => !auth()->user()?->can('profile.edit')),
+
                     ])
                     ->collapsible(),
 
