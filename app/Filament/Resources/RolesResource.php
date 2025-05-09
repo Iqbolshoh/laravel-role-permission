@@ -116,11 +116,8 @@ class RolesResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->name !== 'superadmin'),
-
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => $record->name !== 'superadmin'),
+                Tables\Actions\EditAction::make()->visible(fn($record) => $record->name !== 'superadmin'),
+                Tables\Actions\DeleteAction::make()->visible(fn($record) => $record->name !== 'superadmin'),
             ])
             ->bulkActions([])
             ->defaultSort('id', 'asc');

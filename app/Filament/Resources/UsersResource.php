@@ -103,10 +103,8 @@ class UsersResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => !$record->hasRole('superadmin')),
-                Tables\Actions\DeleteAction::make('Delete')
-                    ->visible(fn($record) => !$record->hasRole('superadmin')),
+                Tables\Actions\EditAction::make()->visible(fn($record) => !$record->hasRole('superadmin')),
+                Tables\Actions\DeleteAction::make('Delete')->visible(fn($record) => !$record->hasRole('superadmin')),
             ])
             ->bulkActions([]);
     }
