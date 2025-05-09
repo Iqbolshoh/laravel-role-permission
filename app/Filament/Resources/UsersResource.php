@@ -39,36 +39,32 @@ class UsersResource extends Resource
             TextInput::make('name')
                 ->required()
                 ->maxLength(255)
-                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
 
             TextInput::make('email')
                 ->email()
                 ->required()
                 ->maxLength(255)
                 ->unique(User::class, 'email', ignoreRecord: true)
-                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
 
             TextInput::make('password')
                 ->password()
                 ->label('Password')
-                ->required(fn(string $context) => $context === 'create')
-                ->requiredWith('passwordConfirmation')
                 ->minLength(8)
-                ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
-                ->dehydrated(fn($state) => filled($state))
-                ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
-                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
+                ->requiredWith('passwordConfirmation') // Ikkinchi kiritilsa, bu ham majburiy
+                ->dehydrated(fn(?string $state): bool => filled($state)) // Bazaga faqat to‘ldirilsa yuboriladi
+                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
 
             TextInput::make('passwordConfirmation')
                 ->password()
                 ->label('Confirm Password')
-                ->required(fn(string $context) => $context === 'create')
-                ->requiredWith('password')
                 ->minLength(8)
-                ->same('password')
-                ->dehydrated(false)
-                ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
-                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
+                ->requiredWith('password') // Birinchi kiritilsa, bu ham majburiy
+                ->same('password') // Parollar mos bo‘lishi shart
+                ->dehydrated(fn(?string $state): bool => filled($state)) // Faqat to‘ldirilsa yuboriladi
+                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
+
 
             /**
              * Role Assignment: Relationship field to assign roles to the user.
@@ -78,8 +74,8 @@ class UsersResource extends Resource
                 ->preload()
                 ->multiple()
                 ->searchable()
-                ->disabled(fn($record) => $record->hasRole('superadmin'))
-                ->options(fn () => Role::where('name', '!=', 'superadmin')->pluck('name', 'id')),
+                ->options(fn() => Role::where('name', '!=', 'superadmin')->pluck('name', 'id'))
+                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
         ]);
     }
 
