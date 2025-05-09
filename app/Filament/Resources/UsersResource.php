@@ -27,7 +27,7 @@ class UsersResource extends Resource
      */
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('user.view');
+        return auth()->user()?->hasRole('superadmin');
     }
 
     /**
@@ -39,14 +39,14 @@ class UsersResource extends Resource
             TextInput::make('name')
                 ->required()
                 ->maxLength(255)
-                ->disabled(fn($record) => auth()->check() && $record && auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
+                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
 
             TextInput::make('email')
                 ->email()
                 ->required()
                 ->maxLength(255)
                 ->unique(User::class, 'email', ignoreRecord: true)
-                ->disabled(fn($record) => auth()->check() && auth()->user() && auth()->user()->hasRole('superadmin') && $record && $record->hasRole('superadmin')),
+                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
 
             TextInput::make('password')
                 ->password()
@@ -57,7 +57,7 @@ class UsersResource extends Resource
                 ->dehydrateStateUsing(fn($state) => filled($state) ? Hash::make($state) : null)
                 ->dehydrated(fn($state) => filled($state))
                 ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
-                ->disabled(fn($record) => auth()->user()?->hasRole('superadmin') && $record?->hasRole('superadmin')),
+                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
 
             TextInput::make('passwordConfirmation')
                 ->password()
@@ -68,7 +68,7 @@ class UsersResource extends Resource
                 ->same('password')
                 ->dehydrated(false)
                 ->visible(fn($livewire) => $livewire instanceof Pages\CreateUsers || $livewire instanceof Pages\EditUsers)
-                ->disabled(fn($record) => auth()->user() && $record && auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin')),
+                ->disabled(fn($record) =>  $record->hasRole('superadmin')),
 
             /**
              * Role Assignment: Relationship field to assign roles to the user.
@@ -78,10 +78,8 @@ class UsersResource extends Resource
                 ->preload()
                 ->multiple()
                 ->searchable()
-                ->disabled(fn($record) => auth()->user() && $record && (auth()->user()->id === $record->id || (auth()->user()->hasRole('superadmin') && $record->hasRole('superadmin'))))
-                ->options(function () {
-                    return Role::where('name', '!=', 'superadmin')->pluck('name', 'id');
-                }),
+                ->disabled(fn($record) => $record->hasRole('superadmin'))
+                ->options(fn () => Role::where('name', '!=', 'superadmin')->pluck('name', 'id')),
         ]);
     }
 
@@ -106,9 +104,9 @@ class UsersResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => auth()->check() && auth()->user()->can('user.edit') && !$record->hasRole('superadmin')), // Tahrir qilish uchun shart
+                    ->visible(fn($record) => !$record->hasRole('superadmin')),
                 Tables\Actions\DeleteAction::make('Delete')
-                    ->visible(fn($record) => auth()->check() && auth()->user()->can('user.delete') && !$record->hasRole('superadmin')), // O'chirish uchun shart
+                    ->visible(fn($record) => !$record->hasRole('superadmin')),
             ])
             ->bulkActions([]);
     }
