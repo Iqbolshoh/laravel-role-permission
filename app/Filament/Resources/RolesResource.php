@@ -55,19 +55,15 @@ class RolesResource extends Resource
                     ->multiple()
                     ->searchable()
                     ->required(fn($record) => $record && $record->name !== 'superadmin')
-                    ->minItems(fn($record) => $record && $record->name !== 'superadmin' ? 1 : null)
+                    ->minItems(fn($record) => $record && $record->name === 'superadmin' ? null : 1)
                     ->disabled(fn($record) => $record && $record->name === 'superadmin')
                     ->options(function () {
                         return Permission::all()
-                            ->groupBy(function ($permission) {
-                                return explode('.', $permission->name)[0];
-                            })
-                            ->mapWithKeys(function ($group, $key) {
-                                return [
-                                    ucfirst($key) => $group->pluck('name', 'id'),
-                                ];
-                            });
-                    }),
+                            ->groupBy(fn($perm) => explode('.', $perm->name)[0])
+                            ->mapWithKeys(fn($group, $key) => [
+                                ucfirst($key) => $group->pluck('name', 'id'),
+                            ]);
+                    })
             ]);
     }
 
