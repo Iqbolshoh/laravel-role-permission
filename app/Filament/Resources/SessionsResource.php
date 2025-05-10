@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Models\Session;
 use App\Filament\Resources\SessionsResource\Pages;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,19 +36,16 @@ class SessionsResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('user_agent')
-                    ->label('Device Name')
-                    ->sortable()
-                    ->limit(50),
-
-                TextColumn::make('ip_address')
-                    ->label('IP Address')
-                    ->sortable(),
-
-                TextColumn::make('last_activity')
-                    ->label('Last Activity')
-                    ->dateTime()
-                    ->sortable(),
+                TextColumn::make('row_number')->label('№')->rowIndex()->sortable(false),
+                TextColumn::make('user_agent')->label('Device Name')->sortable()->limit(50),
+                TextColumn::make('ip_address')->label('IP Address')->sortable(),
+                TextColumn::make('last_activity')->label('Last Activity')->sortable()
+                    ->formatStateUsing(function ($state) {
+                        $lastActivity = Carbon::parse($state);
+                        return $lastActivity->gt(now()->subMinute())
+                            ? '🟢 Online'
+                            : $lastActivity->diffForHumans();
+                    }),
             ])
             ->query(fn() => Session::query()->where('user_id', Auth::id()))
             ->defaultSort('last_activity', 'desc')

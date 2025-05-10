@@ -13,6 +13,11 @@ class CreateRoles extends CreateRecord
 
     protected array $permissions = [];
 
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()?->hasRole('superadmin');
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->permissions = $data['permissions'] ?? [];

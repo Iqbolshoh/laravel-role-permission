@@ -10,8 +10,14 @@ use Spatie\Permission\Models\Permission;
 class EditRoles extends EditRecord
 {
     protected static string $resource = RolesResource::class;
-
     protected array $permissions = [];
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\DeleteAction::make()->visible(fn($record) => $record->name !== 'superadmin' && auth()->user()?->hasRole('superadmin')),
+        ];  
+    }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
@@ -26,12 +32,5 @@ class EditRoles extends EditRecord
             $permissionNames = Permission::whereIn('id', $this->permissions)->pluck('name')->toArray();
             $this->record->syncPermissions($permissionNames);
         }
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\DeleteAction::make()->visible(fn($record) => $record->name !== 'superadmin'),
-        ];
     }
 }

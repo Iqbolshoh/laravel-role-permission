@@ -43,6 +43,7 @@ class RolesResource extends Resource
                 TextInput::make('name')
                     ->required()
                     ->unique(ignoreRecord: true)
+                    ->maxLength(255)
                     ->label('Role Name')
                     ->rule('regex:/^[a-zA-Z0-9-]+$/')
                     ->helperText('Only letters (a-z, A-Z), numbers (0-9), and dashes (-) are allowed.')
@@ -74,26 +75,11 @@ class RolesResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')
-                    ->sortable()
-                    ->searchable()
-                    ->label('ID'),
-
-                TextColumn::make('name')
-                    ->sortable()
-                    ->searchable()
-                    ->label('Role Name'),
-
-                TextColumn::make('permissions.name')
-                    ->label('Permissions')
-                    ->badge()
-                    ->searchable()
-                    ->separator(', '),
-
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->label('Created At'),
+                TextColumn::make('id')->sortable()->searchable()->label('ID'),
+                TextColumn::make('name')->sortable()->searchable()->label('Role Name'),
+                TextColumn::make('permissions.name')->label('Permissions')->searchable()->badge()->separator(', '),
+                TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable(),
+                TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('permissions')

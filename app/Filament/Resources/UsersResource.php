@@ -52,6 +52,7 @@ class UsersResource extends Resource
                 ->password()
                 ->label('Password')
                 ->minLength(8)
+                ->maxLength(255)
                 ->requiredWith('passwordConfirmation')
                 ->dehydrated(fn(?string $state): bool => filled($state))
                 ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
@@ -60,6 +61,7 @@ class UsersResource extends Resource
                 ->password()
                 ->label('Confirm Password')
                 ->minLength(8)
+                ->maxLength(255)
                 ->requiredWith('password')
                 ->same('password')
                 ->dehydrated(fn(?string $state): bool => filled($state))
@@ -86,8 +88,9 @@ class UsersResource extends Resource
                 TextColumn::make('id')->label('ID')->searchable()->sortable(),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable()->sortable(),
-                TextColumn::make('roles.name')->badge()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable(),
+                TextColumn::make('roles.name')->searchable()->sortable()->badge(),
+                TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable(),
+                TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('roles')
