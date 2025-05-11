@@ -24,7 +24,7 @@ class CreateRoles extends CreateRecord
     {
         $permissionIds = $data['permissions'] ?? [];
         unset($data['permissions']);
-        $this->form->getState()['permissions'] = $permissionIds;
+        $this->form->getState()['permissions'] = $permissionIds; // Store for afterCreate
         return $data;
     }
 

@@ -13,18 +13,18 @@ class Dashboard extends Page
     protected static ?int $navigationSort = 1;
 
     /**
-     * getViewData: Retrieves the current user's name, email, role, join date, and last login time.
+     * Retrieve data for the dashboard view, including all user roles.
      */
     public function getViewData(): array
     {
         $user = Auth::user();
 
         return [
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => optional($user->roles->first())->name,
-            'joined' => $user->created_at->format('d M, Y'),
-            'lastLogin' => $user->last_login_at ? $user->last_login_at->format('d M, Y H:i') : 'Not available',
+            'name' => $user?->name ?? 'Unknown',
+            'email' => $user?->email ?? 'N/A',
+            'roles' => $user?->roles->pluck('name')->toArray() ?? [],
+            'joined' => $user?->created_at?->format('d M, Y') ?? 'N/A',
+            'lastLogin' => $user?->last_login_at?->format('d M, Y H:i') ?? 'Not available',
         ];
     }
 }

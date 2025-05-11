@@ -97,8 +97,9 @@ class RolesResource extends Resource
                 TextColumn::make('id')->sortable()->searchable()->label('ID'),
                 TextColumn::make('name')->sortable()->searchable()->label('Role Name'),
                 TextColumn::make('permissions.name')->label('Permissions')->searchable()->badge(),
-                TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable(),
-                TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable(),
+                TextColumn::make('users_count')->label('Users')->counts('users')->sortable()->badge()->color('success')->formatStateUsing(fn($state) => $state ?? 0),
+                TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable()->toggledHiddenByDefault(),
+                TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable()->toggledHiddenByDefault(),
             ])
             ->filters([
                 SelectFilter::make('permissions')

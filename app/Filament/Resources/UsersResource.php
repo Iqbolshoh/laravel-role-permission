@@ -88,8 +88,8 @@ class UsersResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('roles.name')->searchable()->sortable()->badge(),
-                TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable(),
-                TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable(),
+                TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable()->toggledHiddenByDefault(),
+                TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable()->toggledHiddenByDefault(),
             ])
             ->filters([
                 SelectFilter::make('roles')
