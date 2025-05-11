@@ -5,13 +5,14 @@ namespace App\Filament\Resources\RolesResource\Pages;
 use App\Filament\Resources\RolesResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Spatie\Permission\Models\Permission;
 
 class EditRoles extends EditRecord
 {
     protected static string $resource = RolesResource::class;
 
     /**
-     * Restrict access to superadmins only.
+     * Determine whether the current user can access this resource.
      */
     public static function canAccess(array $parameters = []): bool
     {
@@ -19,7 +20,7 @@ class EditRoles extends EditRecord
     }
 
     /**
-     * Define header actions.
+     * Defines actions available in the header, specifically showing the delete action unless the role is 'superadmin'.
      */
     protected function getHeaderActions(): array
     {
@@ -29,22 +30,23 @@ class EditRoles extends EditRecord
     }
 
     /**
-     * Process form data before saving the role.
+     * Mutates the form data before saving the record, handling the permissions data.
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $permissionIds = $data['permissions'] ?? [];
+        $this->permissions = $data['permissions'] ?? [];
         unset($data['permissions']);
-        $this->form->getState()['permissions'] = $permissionIds; // Store for afterSave
         return $data;
     }
 
     /**
-     * Sync permissions after saving the role.
+     * Syncs the permissions for the role after saving the changes.
      */
     protected function afterSave(): void
     {
-        $permissionIds = $this->form->getState()['permissions'] ?? [];
-        RolesResource::syncPermissions($this->record, $permissionIds);
+        if (!empty($this->permissions)) {
+            $permissionNames = Permission::whereIn('id', $this->permissions)->pluck('name')->toArray();
+            $this->record->syncPermissions($permissionNames);
+        }
     }
 }

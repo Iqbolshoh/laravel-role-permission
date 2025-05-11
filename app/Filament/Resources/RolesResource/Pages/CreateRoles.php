@@ -4,13 +4,15 @@ namespace App\Filament\Resources\RolesResource\Pages;
 
 use App\Filament\Resources\RolesResource;
 use Filament\Resources\Pages\CreateRecord;
+use Spatie\Permission\Models\Permission;
+
 
 class CreateRoles extends CreateRecord
 {
     protected static string $resource = RolesResource::class;
 
     /**
-     * Restrict access to superadmins only.
+     * Determine whether the current user can access this resource.
      */
     public static function canAccess(array $parameters = []): bool
     {
@@ -18,22 +20,23 @@ class CreateRoles extends CreateRecord
     }
 
     /**
-     * Process form data before creating the role.
+     * Mutates the form data before creating a new role by handling permissions.
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $permissionIds = $data['permissions'] ?? [];
+        $this->permissions = $data['permissions'] ?? [];
         unset($data['permissions']);
-        $this->form->getState()['permissions'] = $permissionIds; // Store for afterCreate
         return $data;
     }
 
     /**
-     * Sync permissions after creating the role.
+     * Syncs the permissions for the newly created role.
      */
     protected function afterCreate(): void
     {
-        $permissionIds = $this->form->getState()['permissions'] ?? [];
-        RolesResource::syncPermissions($this->record, $permissionIds);
+        if (!empty($this->permissions)) {
+            $permissionNames = Permission::whereIn('id', $this->permissions)->pluck('name')->toArray();
+            $this->record->syncPermissions($permissionNames);
+        }
     }
 }

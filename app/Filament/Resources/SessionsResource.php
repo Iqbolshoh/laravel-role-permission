@@ -22,7 +22,7 @@ class SessionsResource extends Resource
     protected static ?int $navigationSort = 5;
 
     /**
-     * Access Control: Determines if the user can access this resource.
+     * Determine whether the current user can access this resource.
      */
     public static function canAccess(): bool
     {

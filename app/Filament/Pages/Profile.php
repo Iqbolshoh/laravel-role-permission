@@ -26,13 +26,16 @@ class Profile extends Page implements HasForms
     public ?array $data = [];
 
     /**
-     * Access Control: Determines if the user can access this page.
+     * Determine whether the current user can access this resource.
      */
     public static function canAccess(): bool
     {
         return auth()->user()?->can('profile.view');
     }
 
+    /**
+     * Defines the form schema for the profile page.
+     */
     public function form(Form $form): Form
     {
         return $form
@@ -110,6 +113,9 @@ class Profile extends Page implements HasForms
             ->model(Auth::user());
     }
 
+    /**
+     * Mount the page and pre-fill form data with the current user's details.
+     */
     public function mount(): void
     {
         if (Auth::check()) {
@@ -120,6 +126,9 @@ class Profile extends Page implements HasForms
         }
     }
 
+    /**
+     * Saves the updated profile information to the database.
+     */
     public function save(): void
     {
         $data = $this->form->getState();
@@ -159,6 +168,9 @@ class Profile extends Page implements HasForms
         $this->redirect('/login');
     }
 
+    /**
+     * Get the forms used in the page.
+     */
     protected function getForms(): array
     {
         return [

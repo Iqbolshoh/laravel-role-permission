@@ -25,7 +25,7 @@ class RolesResource extends Resource
     protected static ?int $navigationSort = 2;
 
     /**
-     * Restrict access to superadmins only.
+     * Determine whether the current user can access this resource.
      */
     public static function canAccess(): bool
     {
@@ -33,7 +33,7 @@ class RolesResource extends Resource
     }
 
     /**
-     * Form configuration for role creation and editing.
+     * Define the form schema used for creating and editing roles.
      */
     public static function form(Form $form): Form
     {
@@ -44,8 +44,8 @@ class RolesResource extends Resource
                 ->unique(ignoreRecord: true)
                 ->label('Role Name')
                 ->regex('/^[a-zA-Z0-9-]+$/')
-                ->helperText('Only letters, numbers, and dashes are allowed.')
-                ->disabled(fn($record) => $record?->name === 'superadmin'),
+                ->helperText('Allowed characters: uppercase letters (A–Z), lowercase letters (a–z), numbers (0–9), and dash (-).')
+                ->disabled(fn(?Role $record) => $record?->name === 'superadmin'),
 
             Select::make('permissions')
                 ->relationship('permissions', 'name')
@@ -53,51 +53,47 @@ class RolesResource extends Resource
                 ->multiple()
                 ->searchable()
                 ->preload()
-                ->required(fn($record) => $record?->name !== 'superadmin')
-                ->minItems(fn($record) => $record?->name !== 'superadmin' ? 1 : 0)
-                ->hidden(fn($record) => $record?->name === 'superadmin')
+                ->required(fn(?Role $record) => $record?->name !== 'superadmin')
+                ->minItems(fn(?Role $record) => $record?->name !== 'superadmin' ? 1 : 0)
+                ->hidden(fn(?Role $record) => $record?->name === 'superadmin')
                 ->options(static::getGroupedPermissions()),
         ]);
     }
 
     /**
-     * Cache and group permissions for the form.
+     * Retrieve and cache grouped permissions for the select input.
      */
     protected static function getGroupedPermissions(): array
     {
-        return Cache::remember('grouped_permissions', now()->addHours(24), function () {
-            return Permission::all()
-                ->groupBy(fn($perm) => explode('.', $perm->name)[0])
-                ->mapWithKeys(fn($group, $key) => [
-                    ucfirst($key) => $group->pluck('name', 'id')->toArray(),
-                ])->toArray();
-        });
+        return Cache::remember('grouped_permissions', now()->addHour(), fn() => Permission::all()
+            ->groupBy(fn(Permission $perm) => explode('.', $perm->name)[0])
+            ->mapWithKeys(fn($group, string $key) => [
+                ucfirst($key) => $group->pluck('name', 'id')->toArray(),
+            ])->toArray());
     }
 
     /**
-     * Sync permissions for a role.
+     * Sync the permissions of a role using permission IDs.
      */
     public static function syncPermissions(Role $role, array $permissionIds): void
     {
-        if (!empty($permissionIds)) {
-            $permissionNames = Permission::whereIn('id', $permissionIds)->pluck('name')->toArray();
-            $role->syncPermissions($permissionNames);
-        } else {
-            $role->syncPermissions([]);
-        }
+        $validIds = Permission::whereIn('id', $permissionIds)->pluck('id')->toArray();
+        $permissionNames = Permission::whereIn('id', $validIds)->pluck('name')->toArray();
+        $role->syncPermissions($permissionNames);
     }
 
     /**
-     * Table configuration for displaying roles.
+     * Define the table structure for displaying roles.
      */
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn(Builder $query) => $query->with('permissions'))
             ->columns([
                 TextColumn::make('id')->sortable()->searchable()->label('ID'),
                 TextColumn::make('name')->sortable()->searchable()->label('Role Name'),
-                TextColumn::make('permissions.name')->label('Permissions')->searchable()->badge(),
-                TextColumn::make('users_count')->label('Users')->counts('users')->sortable()->badge()->color('success')->formatStateUsing(fn($state) => $state ?? 0),
+                TextColumn::make('permissions.name')->label('Permissions')->badge(),
+                TextColumn::make('users_count')->label('Users')->counts('users')->sortable()->badge()->color('success')->formatStateUsing(fn(?int $state) => $state ?? 0)->extraAttributes(['class' => 'hover:bg-success-100 transition-colors']),
                 TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable()->toggledHiddenByDefault(),
                 TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable()->toggledHiddenByDefault(),
             ])
@@ -107,18 +103,23 @@ class RolesResource extends Resource
                     ->options(fn() => Permission::pluck('name', 'id')->toArray())
                     ->multiple()
                     ->preload()
-                    ->query(fn(Builder $query, array $data) => $data['values'] ? $query->whereHas('permissions', fn(Builder $subQuery) => $subQuery->whereIn('id', $data['values'])) : $query),
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+                        $query->whereHas('permissions', fn(Builder $subQuery) => $subQuery->whereIn('id', $data['values']));
+                    }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->visible(fn($record) => $record->name !== 'superadmin'),
-                Tables\Actions\DeleteAction::make()->visible(fn($record) => $record->name !== 'superadmin'),
+                Tables\Actions\EditAction::make()->visible(fn(Role $record) => $record->name !== 'superadmin'),
+                Tables\Actions\DeleteAction::make()->visible(fn(Role $record) => $record->name !== 'superadmin'),
             ])
             ->bulkActions([])
             ->defaultSort('id', 'asc');
     }
 
     /**
-     * Relations configuration.
+     * Define the relationships available on this resource.
      */
     public static function getRelations(): array
     {
@@ -126,7 +127,7 @@ class RolesResource extends Resource
     }
 
     /**
-     * Page routes configuration.
+     * Define the available pages for this resource.
      */
     public static function getPages(): array
     {
