@@ -3,73 +3,92 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RolesResource\Pages;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\Filter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RolesResource extends Resource
 {
     protected static ?string $model = Role::class;
     protected static ?string $navigationIcon = 'heroicon-o-cog';
-    protected static string $view = 'filament.pages.roles';
     protected static ?string $navigationGroup = 'Roles & Users';
     protected static ?int $navigationSort = 2;
 
     /**
-     * Access Control: Determines if the user can access this page.
+     * Restrict access to superadmins only.
      */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('superadmin');
+        return auth()->user()?->hasRole('superadmin') ?? false;
     }
 
     /**
-     * Form Configuration: Defines fields for role creation and editing.
+     * Form configuration for role creation and editing.
      */
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                TextInput::make('name')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255)
-                    ->label('Role Name')
-                    ->rule('regex:/^[a-zA-Z0-9-]+$/')
-                    ->helperText('Only letters (a-z, A-Z), numbers (0-9), and dashes (-) are allowed.')
-                    ->disabled(fn($record) => $record && $record->name === 'superadmin'),
+        return $form->schema([
+            TextInput::make('name')
+                ->required()
+                ->maxLength(255)
+                ->unique(ignoreRecord: true)
+                ->label('Role Name')
+                ->regex('/^[a-zA-Z0-9-]+$/')
+                ->helperText('Only letters, numbers, and dashes are allowed.')
+                ->disabled(fn($record) => $record?->name === 'superadmin'),
 
-                Select::make('permissions')
-                    ->relationship('permissions', 'name')
-                    ->label('Permissions')
-                    ->preload()
-                    ->multiple()
-                    ->searchable()
-                    ->required(fn($record) => $record && $record->name !== 'superadmin')
-                    ->minItems(fn($record) => $record && $record->name === 'superadmin' ? null : 1)
-                    ->disabled(fn($record) => $record && $record->name === 'superadmin')
-                    ->options(function () {
-                        return Permission::all()
-                            ->groupBy(fn($perm) => explode('.', $perm->name)[0])
-                            ->mapWithKeys(fn($group, $key) => [
-                                ucfirst($key) => $group->pluck('name', 'id'),
-                            ]);
-                    })
-            ]);
+            Select::make('permissions')
+                ->relationship('permissions', 'name')
+                ->label('Permissions')
+                ->multiple()
+                ->searchable()
+                ->preload()
+                ->required(fn($record) => $record?->name !== 'superadmin')
+                ->minItems(fn($record) => $record?->name !== 'superadmin' ? 1 : 0)
+                ->hidden(fn($record) => $record?->name === 'superadmin')
+                ->options(static::getGroupedPermissions()),
+        ]);
     }
 
     /**
-     * Table Configuration: Configures the table for displaying roles.
+     * Cache and group permissions for the form.
+     */
+    protected static function getGroupedPermissions(): array
+    {
+        return Cache::remember('grouped_permissions', now()->addHours(24), function () {
+            return Permission::all()
+                ->groupBy(fn($perm) => explode('.', $perm->name)[0])
+                ->mapWithKeys(fn($group, $key) => [
+                    ucfirst($key) => $group->pluck('name', 'id')->toArray(),
+                ])->toArray();
+        });
+    }
+
+    /**
+     * Sync permissions for a role.
+     */
+    public static function syncPermissions(Role $role, array $permissionIds): void
+    {
+        if (!empty($permissionIds)) {
+            $permissionNames = Permission::whereIn('id', $permissionIds)->pluck('name')->toArray();
+            $role->syncPermissions($permissionNames);
+        } else {
+            $role->syncPermissions([]);
+        }
+    }
+
+    /**
+     * Table configuration for displaying roles.
      */
     public static function table(Table $table): Table
     {
@@ -77,25 +96,17 @@ class RolesResource extends Resource
             ->columns([
                 TextColumn::make('id')->sortable()->searchable()->label('ID'),
                 TextColumn::make('name')->sortable()->searchable()->label('Role Name'),
-                TextColumn::make('permissions.name')->label('Permissions')->searchable()->badge()->separator(', '),
+                TextColumn::make('permissions.name')->label('Permissions')->searchable()->badge(),
                 TextColumn::make('created_at')->dateTime()->sortable()->label('Created At')->toggleable(),
                 TextColumn::make('updated_at')->dateTime()->sortable()->label('Updated At')->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('permissions')
-                    ->label('Filter by Permission')
-                    ->options(function () {
-                        return Permission::pluck('name', 'id')->toArray();
-                    })
+                    ->label('Permissions')
+                    ->options(fn() => Permission::pluck('name', 'id')->toArray())
                     ->multiple()
                     ->preload()
-                    ->query(function (Builder $query, array $data) {
-                        if (!empty($data['values'])) {
-                            $query->whereHas('permissions', function (Builder $subQuery) use ($data) {
-                                $subQuery->whereIn('permissions.id', $data['values']);
-                            });
-                        }
-                    }),
+                    ->query(fn(Builder $query, array $data) => $data['values'] ? $query->whereHas('permissions', fn(Builder $subQuery) => $subQuery->whereIn('id', $data['values'])) : $query),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->visible(fn($record) => $record->name !== 'superadmin'),
@@ -106,7 +117,7 @@ class RolesResource extends Resource
     }
 
     /**
-     * Relations Configuration: No related models defined.
+     * Relations configuration.
      */
     public static function getRelations(): array
     {
@@ -114,7 +125,7 @@ class RolesResource extends Resource
     }
 
     /**
-     * Page Routes Configuration: Defines routes for role management.
+     * Page routes configuration.
      */
     public static function getPages(): array
     {

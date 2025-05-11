@@ -3,33 +3,37 @@
 namespace App\Filament\Resources\RolesResource\Pages;
 
 use App\Filament\Resources\RolesResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
-use Spatie\Permission\Models\Permission;
 
 class CreateRoles extends CreateRecord
 {
     protected static string $resource = RolesResource::class;
 
-    protected array $permissions = [];
-
+    /**
+     * Restrict access to superadmins only.
+     */
     public static function canAccess(array $parameters = []): bool
     {
-        return auth()->user()?->hasRole('superadmin');
+        return auth()->user()?->hasRole('superadmin') ?? false;
     }
 
+    /**
+     * Process form data before creating the role.
+     */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->permissions = $data['permissions'] ?? [];
+        $permissionIds = $data['permissions'] ?? [];
         unset($data['permissions']);
+        $this->form->getState()['permissions'] = $permissionIds;
         return $data;
     }
 
+    /**
+     * Sync permissions after creating the role.
+     */
     protected function afterCreate(): void
     {
-        if (!empty($this->permissions)) {
-            $permissionNames = Permission::whereIn('id', $this->permissions)->pluck('name')->toArray();
-            $this->record->syncPermissions($permissionNames);
-        }
+        $permissionIds = $this->form->getState()['permissions'] ?? [];
+        RolesResource::syncPermissions($this->record, $permissionIds);
     }
 }

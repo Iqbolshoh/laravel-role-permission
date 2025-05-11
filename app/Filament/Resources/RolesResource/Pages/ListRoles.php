@@ -10,10 +10,21 @@ class ListRoles extends ListRecords
 {
     protected static string $resource = RolesResource::class;
 
+    /**
+     * Restrict access to superadmins only.
+     */
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()?->hasRole('superadmin') ?? false;
+    }
+
+    /**
+     * Define header actions.
+     */
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->visible(auth()->user()?->hasRole('superadmin')),
+            Actions\CreateAction::make(),
         ];
     }
 }
