@@ -27,7 +27,7 @@ class UsersResource extends Resource
      */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('superadmin');
+        return auth()->user()?->can('user.view');
     }
 
     /**
@@ -39,14 +39,14 @@ class UsersResource extends Resource
             TextInput::make('name')
                 ->required()
                 ->maxLength(255)
-                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
 
             TextInput::make('email')
                 ->email()
                 ->required()
                 ->maxLength(255)
                 ->unique(User::class, 'email', ignoreRecord: true)
-                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
 
             TextInput::make('password')
                 ->password()
@@ -55,7 +55,7 @@ class UsersResource extends Resource
                 ->maxLength(255)
                 ->requiredWith('passwordConfirmation')
                 ->dehydrated(fn(?string $state): bool => filled($state))
-                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
 
             TextInput::make('passwordConfirmation')
                 ->password()
@@ -65,7 +65,7 @@ class UsersResource extends Resource
                 ->requiredWith('password')
                 ->same('password')
                 ->dehydrated(fn(?string $state): bool => filled($state))
-                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
 
             Select::make('roles')
                 ->relationship('roles', 'name')
@@ -74,7 +74,7 @@ class UsersResource extends Resource
                 ->searchable()
                 ->minItems(1)
                 ->options(fn() => Role::where('name', '!=', 'superadmin')->pluck('name', 'id'))
-                ->disabled(fn($record) => $record && $record->hasRole('superadmin')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit'))
         ]);
     }
 
@@ -99,8 +99,8 @@ class UsersResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->visible(fn($record) => !$record->hasRole('superadmin')),
-                Tables\Actions\DeleteAction::make('Delete')->visible(fn($record) => !$record->hasRole('superadmin')),
+                Tables\Actions\EditAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.edit') && auth()->id() !== $record->id),
+                Tables\Actions\DeleteAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.delete') && auth()->id() !== $record->id),
             ])
             ->bulkActions([]);
     }

@@ -3,9 +3,8 @@
 namespace App\Filament\Resources\UsersResource\Pages;
 
 use App\Filament\Resources\UsersResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
-use Hash;
+use Illuminate\Support\Facades\Hash;
 
 class CreateUsers extends CreateRecord
 {
@@ -19,6 +18,6 @@ class CreateUsers extends CreateRecord
 
     public static function canAccess(array $parameters = []): bool
     {
-        return auth()->user()?->hasRole('superadmin');
+        return auth()->user()?->can('user.create');
     }
 }

@@ -5,7 +5,7 @@ namespace App\Filament\Resources\UsersResource\Pages;
 use App\Filament\Resources\UsersResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Hash;
+use Illuminate\Support\Facades\Hash;
 
 class EditUsers extends EditRecord
 {
@@ -14,7 +14,7 @@ class EditUsers extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()->visible(fn($record) => !$record->hasRole('superadmin')  && auth()->user()?->hasRole('superadmin')),
+            Actions\DeleteAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.delete') && auth()->id() !== $record->id),
         ];
     }
 
@@ -28,5 +28,4 @@ class EditUsers extends EditRecord
 
         return $data;
     }
-
 }

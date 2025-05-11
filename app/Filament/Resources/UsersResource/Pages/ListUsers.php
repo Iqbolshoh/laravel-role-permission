@@ -13,7 +13,7 @@ class ListUsers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->visible(auth()->user()?->hasRole('superadmin')),
+            Actions\CreateAction::make()->visible(fn() => auth()->user()?->can('user.create')),
         ];
     }
 }
