@@ -18,6 +18,6 @@ class CreateUsers extends CreateRecord
 
     public static function canAccess(array $parameters = []): bool
     {
-        return auth()->user()?->can('user.create');
+        return auth()->user()?->can('user.create') ?? false;
     }
 }

@@ -12,7 +12,6 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class UsersResource extends Resource
@@ -27,7 +26,7 @@ class UsersResource extends Resource
      */
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('user.view');
+        return auth()->user()?->can('user.view') ?? false;
     }
 
     /**
@@ -39,14 +38,14 @@ class UsersResource extends Resource
             TextInput::make('name')
                 ->required()
                 ->maxLength(255)
-                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit') || self::hasMatchingRoles($record)),
 
             TextInput::make('email')
                 ->email()
                 ->required()
                 ->maxLength(255)
                 ->unique(User::class, 'email', ignoreRecord: true)
-                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit') || self::hasMatchingRoles($record)),
 
             TextInput::make('password')
                 ->password()
@@ -55,7 +54,7 @@ class UsersResource extends Resource
                 ->maxLength(255)
                 ->requiredWith('passwordConfirmation')
                 ->dehydrated(fn(?string $state): bool => filled($state))
-                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit') || self::hasMatchingRoles($record)),
 
             TextInput::make('passwordConfirmation')
                 ->password()
@@ -65,7 +64,7 @@ class UsersResource extends Resource
                 ->requiredWith('password')
                 ->same('password')
                 ->dehydrated(fn(?string $state): bool => filled($state))
-                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit')),
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit') || self::hasMatchingRoles($record)),
 
             Select::make('roles')
                 ->relationship('roles', 'name')
@@ -74,7 +73,7 @@ class UsersResource extends Resource
                 ->searchable()
                 ->minItems(1)
                 ->options(fn() => Role::where('name', '!=', 'superadmin')->pluck('name', 'id'))
-                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit'))
+                ->disabled(fn($record) => $record?->hasRole('superadmin') || auth()->id() === $record?->id || !auth()->user()?->can('user.edit') || self::hasMatchingRoles($record)),
         ]);
     }
 
@@ -99,10 +98,20 @@ class UsersResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.edit') && auth()->id() !== $record->id),
-                Tables\Actions\DeleteAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.delete') && auth()->id() !== $record->id),
+                Tables\Actions\EditAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.edit') && auth()->id() !== $record->id && !self::hasMatchingRoles($record)),
+                Tables\Actions\DeleteAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.delete') && auth()->id() !== $record->id && !self::hasMatchingRoles($record)),
             ])
             ->bulkActions([]);
+    }
+
+    /**
+     * Check if the authenticated user has any matching roles with the target user.
+     */
+    public static function hasMatchingRoles($record): bool
+    {
+        $authUserRoles = auth()->user()?->roles->pluck('name')->toArray() ?? [];
+        $targetUserRoles = $record?->roles->pluck('name')->toArray() ?? [];
+        return !empty(array_intersect($authUserRoles, $targetUserRoles));
     }
 
     /**

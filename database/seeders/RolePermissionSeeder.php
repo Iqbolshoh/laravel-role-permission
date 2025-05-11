@@ -62,6 +62,13 @@ class RolePermissionSeeder extends Seeder
                 'superadmin' => [
                     'permissions' => [], // Automatically assigned all permissions
                 ],
+                'admin' => [
+                    'permissions' => [
+                        'user' => ['view', 'create', 'edit', 'delete'],
+                        'profile' => ['view', 'edit'],
+                        'session' => ['view', 'delete'],
+                    ],
+                ],
                 'user' => [
                     'permissions' => [
                         'profile' => ['view', 'edit'],
@@ -83,9 +90,17 @@ class RolePermissionSeeder extends Seeder
                 'superadmin' => [
                     [
                         'name' => 'Super Admin',
-                        'email' => 'admin@iqbolshoh.uz',
+                        'email' => 'superadmin@iqbolshoh.uz',
                         'password' => bcrypt('IQBOLSHOH'),
                         'role' => 'superadmin',
+                    ],
+                ],
+                'admin' => [
+                    [
+                        'name' => 'Admin User',
+                        'email' => 'admin@iqbolshoh.uz',
+                        'password' => bcrypt('IQBOLSHOH'),
+                        'role' => 'admin',
                     ],
                 ],
                 'user' => [

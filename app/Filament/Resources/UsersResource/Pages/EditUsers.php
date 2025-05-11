@@ -14,7 +14,7 @@ class EditUsers extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.delete') && auth()->id() !== $record->id),
+            Actions\DeleteAction::make()->visible(fn($record) => $record && !$record->hasRole('superadmin') && auth()->user()?->can('user.delete') && auth()->id() !== $record->id && UsersResource::hasMatchingRoles($record)),
         ];
     }
 
