@@ -79,7 +79,7 @@ class RolePermissionSeeder extends Seeder
                     ['name' => 'Manager User', 'email' => 'manager@iqbolshoh.uz', 'password' => bcrypt('IQBOLSHOH')],
                 ],
                 'user' => [
-                    ['name' => 'Regular User', 'email' => 'user@iqbolshoh.uz', 'password' => bcrypt('IQBOLSHOH')],
+                    ['name' => 'Simple User', 'email' => 'user@iqbolshoh.uz', 'password' => bcrypt('IQBOLSHOH')],
                 ],
             ],
         ];
